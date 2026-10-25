@@ -7,6 +7,8 @@
 
 无需安装、无需构建、没有后端 —— 双击 `index.html` 即可运行，也可直接部署为静态站点。
 
+> 许可：**PolyForm Noncommercial 1.0.0** — 非商业用途免费，**禁止商业使用**（详见文末[许可](#许可)）。
+
 ---
 
 ## 功能
@@ -133,4 +135,16 @@ python -m http.server 8080
 
 ## 许可
 
-本项目为教学 / 演示用途。第三方依赖许可见 `vendor/` 内各自来源（Oat UI、Morphicons、Lucide 图标）。
+本项目以 **[PolyForm Noncommercial License 1.0.0](LICENSE)** 发布 —— **禁止商业使用**，非商业用途免费。
+
+- **允许**：个人学习 / 研究 / 兴趣项目、课堂教学（学校等教育机构）、非营利组织与政府机构使用；可修改、可再分发，但须保留许可条款与 `Required Notice` 声明。
+- **禁止**：任何商业用途，包括在公司内部用于商业产品或服务、SaaS 部署、二次销售、付费交付等。
+- 如需商业授权，请另行联系作者。
+
+第三方依赖各自遵循其原始许可：
+
+| 依赖 | 说明 |
+| --- | --- |
+| [Oat UI](https://oat.ink/) | 语义化 HTML 组件样式，已本地化到 `vendor/oat/` |
+| [Morphicons](https://www.morphicons.com/) | 图标形变动画，已本地化到 `vendor/morphicons.js` |
+| [Lucide](https://lucide.dev/) | 图标路径数据（`assets/icons.js`），ISC 许可 |
