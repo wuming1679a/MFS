@@ -1,0 +1,2955 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>带电粒子偏转模拟</title>
+<style>
+  *{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+  html,body{width:100%;height:100%;overflow:hidden;background:#0b1120;
+    font-family:system-ui,-apple-system,"Segoe UI","Microsoft YaHei",sans-serif;
+    color:#e2e8f0;user-select:none}
+  canvas{position:fixed;inset:0;display:block;cursor:crosshair}
+
+  .panel{position:fixed;background:rgba(15,23,42,.9);backdrop-filter:blur(12px);
+    border:1px solid rgba(148,163,184,.18);border-radius:14px;
+    box-shadow:0 8px 30px rgba(0,0,0,.45);z-index:10}
+
+  #leftPanel{left:16px;top:16px;padding:10px;width:184px;max-height:calc(100vh - 32px);
+    display:flex;flex-direction:column;gap:6px}
+  .catBtn{padding:9px 12px;border-radius:9px;border:1px solid rgba(148,163,184,.22);
+    background:rgba(30,41,59,.7);color:#cbd5e1;font-size:14px;cursor:pointer;
+    text-align:left;transition:.15s;font-weight:500}
+  .catBtn:hover{background:rgba(51,65,85,.9);color:#fff}
+  .catBtn.on{background:#2563eb;border-color:#3b82f6;color:#fff}
+
+  #legend{margin-top:4px;display:flex;flex-direction:column;gap:5px;
+    overflow-y:auto;max-height:calc(100vh - 260px);padding-right:2px}
+  #legend::-webkit-scrollbar{width:5px}
+  #legend::-webkit-scrollbar-thumb{background:rgba(148,163,184,.35);border-radius:3px}
+  .legendItem{padding:8px 11px;border-radius:20px;font-size:13px;cursor:pointer;
+    background:rgba(51,65,85,.55);border:1px solid rgba(148,163,184,.16);
+    color:#cbd5e1;transition:.15s;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .legendItem:hover{background:rgba(71,85,105,.9);color:#fff}
+  .legendItem.on{background:#0ea5e9;border-color:#38bdf8;color:#fff}
+
+  #propPanel{right:16px;top:16px;width:280px;max-height:calc(100vh - 220px);
+    overflow-y:auto;padding:14px;display:none}
+  #propPanel::-webkit-scrollbar{width:5px}
+  #propPanel::-webkit-scrollbar-thumb{background:rgba(148,163,184,.35);border-radius:3px}
+  .pTitle{font-size:15px;font-weight:600;color:#f1f5f9;margin-bottom:12px;
+    padding-bottom:9px;border-bottom:1px solid rgba(148,163,184,.18);
+    display:flex;justify-content:space-between;align-items:center}
+  .pTitle small{font-size:11px;color:#64748b;font-weight:400}
+  .row{margin-bottom:11px}
+  .rowLabel{font-size:12px;color:#94a3b8;margin-bottom:5px;display:flex;
+    justify-content:space-between;align-items:center}
+  .rowLabel b{color:#38bdf8;font-weight:500}
+
+  .seg{display:flex;background:rgba(30,41,59,.9);border-radius:8px;padding:2px;gap:2px}
+  .segBtn{flex:1;padding:6px 2px;border:none;border-radius:6px;background:transparent;
+    color:#94a3b8;font-size:12px;cursor:pointer;transition:.15s;white-space:nowrap}
+  .segBtn:hover{color:#e2e8f0}
+  .segBtn.on{background:#2563eb;color:#fff;font-weight:500}
+
+  .sliderWrap{display:flex;align-items:center;gap:8px}
+  input[type=range]{-webkit-appearance:none;flex:1;height:4px;border-radius:2px;
+    background:rgba(148,163,184,.25);outline:none;cursor:pointer}
+  input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:14px;height:14px;
+    border-radius:50%;background:#38bdf8;cursor:pointer;box-shadow:0 0 6px rgba(56,189,248,.6)}
+  .sliderVal{font-size:12px;color:#38bdf8;min-width:52px;text-align:right;
+    font-variant-numeric:tabular-nums}
+  .numMini{flex:0 0 56px;width:56px;padding:3px 6px;font-size:11.5px;text-align:right;
+    border-radius:6px;background:rgba(30,41,59,.95);border:1px solid rgba(148,163,184,.22);
+    color:#7dd3fc;font-variant-numeric:tabular-nums}
+  .numMini:focus{border-color:#38bdf8;outline:none}
+
+  .numWrap{display:flex;align-items:center;gap:6px}
+  input[type=number]{flex:1;width:100%;background:rgba(30,41,59,.9);border:1px solid rgba(148,163,184,.22);
+    border-radius:7px;padding:6px 9px;color:#e2e8f0;font-size:13px;outline:none}
+  input[type=number]:focus{border-color:#38bdf8}
+  .unit{font-size:12px;color:#64748b;min-width:34px}
+
+  .delBtn{width:100%;padding:9px;margin-top:6px;border-radius:9px;cursor:pointer;
+    background:rgba(239,68,68,.15);border:1px solid rgba(239,68,68,.45);color:#f87171;
+    font-size:13px;transition:.15s}
+  .delBtn:hover{background:rgba(239,68,68,.3);color:#fff}
+
+  #listPanel{right:16px;bottom:16px;width:250px;overflow:hidden}
+  #listHeader{padding:11px 14px;font-size:13px;font-weight:600;color:#cbd5e1;
+    cursor:pointer;display:flex;justify-content:space-between;align-items:center}
+  #listHeader:hover{color:#fff}
+  #listHeader span{font-size:11px;color:#64748b;transition:.2s}
+  #listPanel.open #listHeader span{transform:rotate(180deg)}
+  #listBody{display:none;max-height:260px;overflow-y:auto;padding:0 8px 8px}
+  #listPanel.open #listBody{display:block}
+  #listBody::-webkit-scrollbar{width:5px}
+  #listBody::-webkit-scrollbar-thumb{background:rgba(148,163,184,.35);border-radius:3px}
+  .compItem{display:flex;align-items:center;gap:8px;padding:7px 9px;border-radius:8px;
+    font-size:12.5px;cursor:pointer;color:#cbd5e1;transition:.12s}
+  .compItem:hover{background:rgba(51,65,85,.7)}
+  .compItem.on{background:rgba(37,99,235,.35);color:#fff}
+  .compItem .dot{width:8px;height:8px;border-radius:50%;flex-shrink:0}
+  .compItem .nm{flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .compItem .x{color:#64748b;font-size:14px;padding:0 3px;border-radius:4px}
+  .compItem .x:hover{color:#f87171;background:rgba(239,68,68,.15)}
+  .emptyTip{font-size:12px;color:#475569;text-align:center;padding:14px 0}
+
+  #simBar{position:fixed;left:50%;bottom:22px;transform:translateX(-50%);
+    display:flex;align-items:center;gap:16px;z-index:10;
+    background:rgba(15,23,42,.9);backdrop-filter:blur(12px);
+    border:1px solid rgba(148,163,184,.18);border-radius:40px;padding:9px 20px 9px 9px;
+    box-shadow:0 8px 30px rgba(0,0,0,.45)}
+  #playBtn{width:52px;height:52px;border-radius:50%;border:none;cursor:pointer;
+    background:#2563eb;display:flex;align-items:center;justify-content:center;
+    transition:background .08s;flex-shrink:0;position:relative}
+  #playBtn .icon{width:0;height:0;border-left:16px solid #fff;
+    border-top:10px solid transparent;border-bottom:10px solid transparent;margin-left:5px}
+  #playBtn.paused .icon{width:14px;height:20px;border:none;margin-left:0;
+    border-left:5px solid #fff;border-right:5px solid #fff;box-sizing:content-box}
+  #speedBox{display:flex;flex-direction:column;gap:4px;width:210px}
+  #speedBox .seg{background:rgba(30,41,59,.9)}
+  #speedBox .segBtn{font-size:11px;padding:4px 2px}
+
+  .hint{position:fixed;left:50%;top:16px;transform:translateX(-50%);
+    font-size:12.5px;color:#64748b;background:rgba(15,23,42,.85);
+    padding:7px 16px;border-radius:20px;border:1px solid rgba(148,163,184,.15);
+    z-index:9;pointer-events:none;transition:opacity .3s}
+
+  /* ===== 视图缩放控件 ===== */
+  #viewPanel{left:16px;bottom:16px;width:184px;padding:10px;z-index:10}
+  .zoomRow{display:flex;justify-content:space-between;align-items:center;
+    font-size:12px;color:#94a3b8;margin-bottom:7px}
+  .zoomRow b{color:#38bdf8;font-weight:600;font-variant-numeric:tabular-nums}
+  #viewPanel .seg{background:rgba(30,41,59,.9)}
+  #viewPanel .segBtn{padding:5px 0;font-size:12px}
+  .viewHint{font-size:10.5px;color:#475569;margin-top:7px;line-height:1.5}
+  canvas.grabbing{cursor:grabbing}
+
+  /* ===== 网格吸附控件 ===== */
+  .snapRow{display:flex;justify-content:space-between;align-items:center;
+    font-size:12px;color:#94a3b8;margin:11px 0 7px;
+    padding-top:9px;border-top:1px solid rgba(148,163,184,.12)}
+  .snapSwitch{border:1px solid rgba(148,163,184,.22);background:rgba(30,41,59,.9);
+    color:#64748b;font-size:11.5px;padding:3px 13px;border-radius:6px;cursor:pointer;
+    transition:background .16s,border-color .16s,color .16s,box-shadow .16s;
+    font-variant-numeric:tabular-nums}
+  .snapSwitch:hover{border-color:rgba(148,163,184,.45);color:#94a3b8}
+  .snapSwitch.on{background:rgba(56,189,248,.16);border-color:rgba(56,189,248,.55);
+    color:#7dd3fc;box-shadow:0 0 10px rgba(56,189,248,.18)}
+  #snapSeg{opacity:.4;transition:opacity .16s}
+  #snapSeg.on{opacity:1}
+  #snapSeg .segBtn{padding:4px 0;font-size:11px;font-variant-numeric:tabular-nums}
+  #snapSeg .segBtn.on{background:rgba(56,189,248,.22);color:#7dd3fc;box-shadow:inset 0 0 0 1px rgba(56,189,248,.35)}
+
+  /* ===== 拖拽读数 HUD ===== */
+  #dragHud{position:fixed;left:0;top:0;z-index:30;pointer-events:none;
+    padding:5px 9px;border-radius:7px;font-size:11.5px;line-height:1.4;
+    font-variant-numeric:tabular-nums;white-space:nowrap;
+    background:rgba(8,14,28,.9);border:1px solid rgba(56,189,248,.35);
+    color:#cbd5e1;box-shadow:0 4px 16px rgba(0,0,0,.45);
+    opacity:0;transition:opacity .1s;transform:translate(-999px,-999px)}
+  #dragHud b{color:#7dd3fc;font-weight:600}
+  #dragHud .tag{display:inline-block;margin-left:6px;padding:0 5px;border-radius:4px;
+    background:rgba(56,189,248,.18);color:#7dd3fc;font-size:10px}
+
+  /* ===== 属性面板分组 ===== */
+  .sectionTitle{font-size:11px;color:#64748b;letter-spacing:.5px;margin:14px 0 8px;
+    padding-bottom:5px;border-bottom:1px solid rgba(148,163,184,.12);
+    text-transform:uppercase;font-weight:600}
+  .sectionTitle:first-of-type{margin-top:2px}
+  .posGrid{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+  .posCell{display:flex;align-items:center;gap:5px;background:rgba(30,41,59,.6);
+    border:1px solid rgba(148,163,184,.16);border-radius:7px;padding:4px 8px}
+  .posCell span{font-size:11px;color:#64748b;flex-shrink:0}
+  .posCell input{border:none;background:transparent;padding:0;min-width:0;flex:1;
+    font-size:12.5px;color:#e2e8f0;font-variant-numeric:tabular-nums}
+  .posCell input:focus{outline:none}
+  .posCell .u{font-size:10px;color:#475569}
+</style>
+</head>
+<body>
+<canvas id="cv"></canvas>
+
+<div class="hint" id="hint">点击左上角类别 → 选择组件 → 点击画布放置</div>
+
+<div class="panel" id="leftPanel">
+  <button class="catBtn" data-cat="field">场</button>
+  <button class="catBtn" data-cat="negative">负场</button>
+  <button class="catBtn" data-cat="obstacle">障碍</button>
+  <button class="catBtn" data-cat="emitter">发射器</button>
+  <div id="legend"></div>
+</div>
+
+<div class="panel" id="propPanel"></div>
+
+<div class="panel" id="listPanel">
+  <div id="listHeader">组件列表 <span>▲</span></div>
+  <div id="listBody"></div>
+</div>
+
+<div class="panel" id="viewPanel">
+  <div class="zoomRow"><span>视图缩放</span><b id="zoomVal">100%</b></div>
+  <div class="seg" id="zoomSeg">
+    <button class="segBtn" data-z="out">－</button>
+    <button class="segBtn" data-z="reset">重置</button>
+    <button class="segBtn" data-z="in">＋</button>
+  </div>
+  <div class="viewHint">滚轮缩放 · 空白处拖动平移</div>
+
+  <div class="snapRow"><span>网格吸附</span><button class="snapSwitch on" id="snapToggle">开</button></div>
+  <div class="seg on" id="snapSeg">
+    <button class="segBtn" data-step="0.1">0.1</button>
+    <button class="segBtn" data-step="0.25">0.25</button>
+    <button class="segBtn on" data-step="0.5">0.5</button>
+    <button class="segBtn" data-step="1">1</button>
+  </div>
+  <div class="viewHint">Shift 反转吸附 · G 切换 · 端点自动对齐轴向</div>
+  <div class="viewHint">橙环旋转 · 黄点改场方向 · Esc 取消拖动</div>
+</div>
+
+<div id="dragHud"></div>
+
+<div id="simBar">
+  <button id="playBtn"><div class="icon"></div></button>
+  <div id="speedBox">
+    <div class="seg" id="speedSeg"></div>
+    <div class="sliderWrap">
+      <input type="range" id="speedRange" min="1" max="100" value="20">
+      <span class="sliderVal" id="speedVal">0.20×</span>
+    </div>
+  </div>
+</div>
+
+<script>
+"use strict";
+
+/* =========================================================
+   常量
+   ========================================================= */
+let SCALE = 100;                          // 每米像素数（可缩放）
+const SCALE_MIN = 25, SCALE_MAX = 420;
+const MAX_PARTICLES = 1500;
+const MAX_TRAIL = 420;
+const SUB_DT = 0.0008;
+const clamp = (v, a, b) => Math.min(b, Math.max(a, v));
+/* 视图平移：画布中心对应的世界坐标 */
+const view = { cx: 0, cy: 0 };
+
+/* =========================================================
+   网格吸附系统
+   ========================================================= */
+const snap = {
+  on: true,         // 是否开启吸附
+  step: 0.5,        // 吸附网格步长（米）
+  axisTan: 0.035,   // 端点轴向吸附：约 2°
+  rotDeg: 5,        // 旋转吸附步长（度）
+};
+
+/* 当前帧的吸附参考线（供渲染层画辅助线） */
+let guides = [];
+/* 当前帧的场边界吸附结果 {x,y,nx,ny,comp} */
+let boundarySnap = null;
+
+/* 拖拽读数 HUD */
+const hudEl = document.getElementById('dragHud');
+
+function roundTo(v, s){ return Math.round(v / s) * s; }
+
+/* 角度吸附：归一到 [0, 2π)，近轴自动贴合 0/90/180/270 */
+function snapAngle(rad, snapDeg){
+  const twoPi = Math.PI * 2;
+  let a = rad % twoPi;
+  if (a < 0) a += twoPi;
+  if (snapDeg){
+    const st = snapDeg * Math.PI / 180;
+    a = roundTo(a, st);
+  }
+  // 近轴贴合（≈1.6°）
+  const axes = [0, Math.PI/2, Math.PI, Math.PI*1.5, twoPi];
+  for (const ax of axes){
+    if (Math.abs(a - ax) < 0.028) return ax % twoPi;
+  }
+  return a % twoPi;
+}
+
+/* 端点吸附：网格 + 轴向对齐（相对固定端点） */
+function snapEndpoint(fixed, moving, act){
+  let mx = moving[0], my = moving[1];
+  if (!act) return [mx, my];
+  mx = roundTo(mx, snap.step);
+  my = roundTo(my, snap.step);
+  const dx = mx - fixed[0], dy = my - fixed[1];
+  if (Math.abs(dy) < Math.abs(dx) * snap.axisTan) my = fixed[1];      // 水平
+  else if (Math.abs(dx) < Math.abs(dy) * snap.axisTan) mx = fixed[0]; // 竖直
+  return [mx, my];
+}
+
+/* 拖动后的位置：优先吸附场边界（发射器），其次网格 */
+function resolvePos(rawX, rawY, act, comp){
+  guides = [];
+  boundarySnap = null;
+  if (!act) return [rawX, rawY];
+
+  // 发射器贴近场边界时直接贴到边界上
+  if (comp && comp.kind === 'emitter'){
+    const hit = nearestFieldBoundary(rawX, rawY, 14 / SCALE, comp.id);
+    if (hit){
+      boundarySnap = hit;
+      return [hit.x, hit.y];
+    }
+  }
+
+  const x = roundTo(rawX, snap.step);
+  const y = roundTo(rawY, snap.step);
+  guides.push({ axis:'x', v:x, grid:true }, { axis:'y', v:y, grid:true });
+  return [x, y];
+}
+
+/* HUD 显示（贴边时自动翻到光标另一侧） */
+function showHud(clientX, clientY, html){
+  hudEl.innerHTML = html;
+  const bw = hudEl.offsetWidth || 150;
+  const bh = hudEl.offsetHeight || 42;
+  let x = clientX + 16, y = clientY + 18;
+  if (x + bw > window.innerWidth - 8) x = clientX - bw - 14;
+  if (y + bh > window.innerHeight - 8) y = clientY - bh - 14;
+  hudEl.style.transform = `translate(${Math.round(x)}px, ${Math.round(y)}px)`;
+  hudEl.style.opacity = '1';
+}
+function hideHud(){ hudEl.style.opacity = '0'; }
+
+const fmt2 = v => (Math.abs(v) < 5e-4 ? 0 : v).toFixed(2);
+const snapTag = act => act ? '<span class="tag">吸附 ' + snap.step + 'm</span>' : '';
+
+/* =========================================================
+   画布
+   ========================================================= */
+const canvas = document.getElementById('cv');
+const ctx = canvas.getContext('2d');
+let W = 0, H = 0;
+
+function resize(){
+  const dpr = window.devicePixelRatio || 1;
+  W = window.innerWidth; H = window.innerHeight;
+  canvas.width  = Math.round(W * dpr);
+  canvas.height = Math.round(H * dpr);
+  canvas.style.width = W + 'px';
+  canvas.style.height = H + 'px';
+  ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+}
+window.addEventListener('resize', resize);
+resize();
+
+function w2s(x, y){ return [W/2 + (x - view.cx)*SCALE, H/2 - (y - view.cy)*SCALE]; }
+function s2w(sx, sy){ return [(sx - W/2)/SCALE + view.cx, (H/2 - sy)/SCALE + view.cy]; }
+
+/* =========================================================
+   形状定义
+   ========================================================= */
+const SHAPES = {
+  single:       { name:'单边界',        w:0,  h:0,  noBoundary:true,  infinite:true  },
+  double:       { name:'双边界',        w:2,  h:0,  noBoundary:false, infinite:true  },
+  singleFinite: { name:'单边界有限场',  w:0,  h:3,  noBoundary:false, infinite:true  },
+  doubleFinite: { name:'双边界有限场',  w:2,  h:3,  noBoundary:false, infinite:false },
+  sector:       { name:'扇形场',        w:0,  h:0,  r:2.5, span:90, noBoundary:false, infinite:false },
+  triangle:     { name:'三角形场',      w:3,  h:2.5,noBoundary:false, infinite:false },
+  rect:         { name:'矩形场',        w:3,  h:2,  noBoundary:false, infinite:false },
+  square:       { name:'正方形场',      w:2.2,h:2.2,noBoundary:false, infinite:false },
+  circle:       { name:'圆形场',        w:0,  h:0,  r:1.6, noBoundary:false, infinite:false },
+  ellipse:      { name:'椭圆形场',      w:3.2,h:2,  noBoundary:false, infinite:false },
+  infinite:     { name:'无限场',        w:0,  h:0,  noBoundary:true,  infinite:true  },
+};
+
+function toLocal(f, px, py){
+  const dx = px - f.x, dy = py - f.y;
+  const ca = Math.cos(-f.angle), sa = Math.sin(-f.angle);
+  return [ dx*ca - dy*sa, dx*sa + dy*ca ];
+}
+function toWorld(f, lx, ly){
+  const ca = Math.cos(f.angle), sa = Math.sin(f.angle);
+  return [ f.x + lx*ca - ly*sa, f.y + lx*sa + ly*ca ];
+}
+
+function insideShape(f, px, py){
+  const [lx, ly] = toLocal(f, px, py);
+  switch(f.shape){
+    case 'infinite': return true;
+    case 'rect': case 'square': case 'doubleFinite':
+      return Math.abs(lx) <= f.w/2 && Math.abs(ly) <= f.h/2;
+    case 'circle':
+      return lx*lx + ly*ly <= f.r*f.r;
+    case 'ellipse':
+      return (lx/(f.w/2))**2 + (ly/(f.h/2))**2 <= 1;
+    case 'sector': {
+      const r = Math.hypot(lx, ly);
+      if (r > f.r) return false;
+      if (r < 1e-9) return true;
+      const a = Math.atan2(ly, lx);
+      return Math.abs(a) <= f.span*Math.PI/360;
+    }
+    case 'triangle': {
+      const hw = f.w/2, hh = f.h/2;
+      if (ly < -hh || ly > hh) return false;
+      const t = (ly + hh) / (2*hh);
+      return Math.abs(lx) <= hw*(1-t);
+    }
+    case 'single':       return lx >= 0;
+    case 'double':       return Math.abs(lx) <= f.w/2;
+    case 'singleFinite': return lx >= 0 && Math.abs(ly) <= f.h/2;
+  }
+  return false;
+}
+
+/* =========================================================
+   边界几何：任意形状的边界最近点 + 外法线
+   ========================================================= */
+function normAngle(a){
+  const twoPi = Math.PI * 2;
+  a %= twoPi;
+  if (a < 0) a += twoPi;
+  return a;
+}
+
+/* 形状边界上距 (px,py) 最近的点；返回 {x,y,nx,ny,dist}（法线指向形状外侧） */
+function nearestOnBoundary(c, px, py){
+  const [lx, ly] = toLocal(c, px, py);
+  const ca = Math.cos(c.angle), sa = Math.sin(c.angle);
+  let best = null;
+
+  // 局部点 → 世界点 + 世界法线
+  const push = (qlx, qly, nlx, nly) => {
+    const wx = c.x + qlx*ca - qly*sa;
+    const wy = c.y + qlx*sa + qly*ca;
+    let nx = nlx*ca - nly*sa;
+    let ny = nlx*sa + nly*ca;
+    const nl = Math.hypot(nx, ny) || 1;
+    nx /= nl; ny /= nl;
+    const d = Math.hypot(wx - px, wy - py);
+    if (!best || d < best.dist) best = { x: wx, y: wy, nx, ny, dist: d };
+  };
+
+  // 线段最近点（局部坐标），法线取远离中心的一侧
+  const seg = (ax, ay, bx, by) => {
+    const vx = bx - ax, vy = by - ay;
+    const L2 = vx*vx + vy*vy;
+    let t = L2 < 1e-12 ? 0 : ((lx - ax)*vx + (ly - ay)*vy) / L2;
+    t = Math.max(0, Math.min(1, t));
+    const qx = ax + vx*t, qy = ay + vy*t;
+    let nx = -vy, ny = vx;
+    const nl = Math.hypot(nx, ny) || 1;
+    nx /= nl; ny /= nl;
+    // 朝外：与「点相对中心」同向
+    if (nx*qx + ny*qy < 0){ nx = -nx; ny = -ny; }
+    push(qx, qy, nx, ny);
+  };
+
+  switch (c.shape){
+    case 'infinite': return null;
+
+    case 'rect': case 'square': case 'doubleFinite': {
+      const hw = c.w/2, hh = c.h/2;
+      seg(-hw, -hh,  hw, -hh);
+      seg( hw, -hh,  hw,  hh);
+      seg( hw,  hh, -hw,  hh);
+      seg(-hw,  hh, -hw, -hh);
+      return best;
+    }
+
+    case 'circle': {
+      const r0 = Math.hypot(lx, ly);
+      if (r0 < 1e-9){ push(c.r, 0, 1, 0); return best; }
+      const ux = lx / r0, uy = ly / r0;
+      push(ux*c.r, uy*c.r, ux, uy);
+      return best;
+    }
+
+    case 'ellipse': {
+      const a = c.w/2, b = c.h/2;
+      const r0 = Math.hypot(lx, ly);
+      if (r0 < 1e-9){ push(a, 0, 1, 0); return best; }
+      const ux = lx/r0, uy = ly/r0;
+      const t = 1 / Math.sqrt((ux/a)**2 + (uy/b)**2);
+      const qx = ux*t, qy = uy*t;
+      push(qx, qy, qx/(a*a), qy/(b*b));
+      return best;
+    }
+
+    case 'sector': {
+      const half = c.span * Math.PI / 360;
+      const ang = Math.atan2(ly, lx);
+      const r0 = Math.hypot(lx, ly);
+      if (Math.abs(ang) <= half && r0 > 1e-9){
+        const ux = lx/r0, uy = ly/r0;
+        push(ux*c.r, uy*c.r, ux, uy);       // 圆弧段
+      } else {
+        seg(0, 0, Math.cos(half)*c.r,  Math.sin(half)*c.r);
+        seg(0, 0, Math.cos(-half)*c.r, Math.sin(-half)*c.r);
+      }
+      return best;
+    }
+
+    case 'triangle': {
+      const hw = c.w/2, hh = c.h/2;
+      seg(-hw, -hh,  hw, -hh);
+      seg( hw, -hh,  0,   hh);
+      seg( 0,   hh, -hw, -hh);
+      return best;
+    }
+
+    case 'double': {
+      const hw = c.w/2;
+      seg(-hw, -2000, -hw, 2000);
+      seg( hw, -2000,  hw, 2000);
+      return best;
+    }
+
+    case 'single': {
+      seg(0, -2000, 0, 2000);
+      return best;
+    }
+
+    case 'singleFinite': {
+      const hh = c.h/2;
+      seg(0, -hh, 0, hh);
+      return best;
+    }
+  }
+  return null;
+}
+
+/* 在所有场（含负场）边界中找最近的一个 */
+function nearestFieldBoundary(px, py, maxDist, excludeId){
+  let best = null;
+  for (const c of state.components){
+    if (c.kind !== 'field' && c.kind !== 'negfield') continue;
+    if (c.id === excludeId) continue;
+    if (c.shape === 'infinite') continue;
+    const hit = nearestOnBoundary(c, px, py);
+    if (!hit) continue;
+    if (hit.dist > maxDist) continue;
+    if (!best || hit.dist < best.dist) best = { ...hit, comp: c };
+  }
+  return best;
+}
+
+/* 指向场内部的方向（用于粒子射入） */
+function inwardDir(hit){
+  const c = hit.comp;
+  let nx = -hit.nx, ny = -hit.ny;                 // 先试反法线
+  const eps = 0.02;
+  if (insideShape(c, hit.x + nx*eps, hit.y + ny*eps)) return [nx, ny];
+  return [-nx, -ny];
+}
+
+/* =========================================================
+   全局状态
+   ========================================================= */
+const state = {
+  components: [],
+  selectedId: null,
+  pending: null,
+  running: false,
+  speed: 0.2,
+  simTime: 0,
+  counters: {},
+  nextId: 1,
+};
+
+let particles = [];
+
+const EMITTER_COLORS = ['#22d3ee','#f472b6','#a3e635','#fbbf24','#a78bfa',
+                        '#fb7185','#34d399','#60a5fa','#f97316','#e879f9'];
+let emitterColorIdx = 0;
+
+const E_PRESET = { weak:0.05, mid:0.2, strong:1.0 };
+const B_PRESET = { weak:0.01, mid:0.05, strong:0.2 };
+const E_MIN = 0.01, E_MAX = 5;
+const B_MIN = 0.002, B_MAX = 1;
+
+/* =========================================================
+   组件创建
+   ========================================================= */
+function nextName(base){
+  state.counters[base] = (state.counters[base] || 0) + 1;
+  return base + state.counters[base];
+}
+
+function makeField(shapeKey, wx, wy, negative){
+  const def = SHAPES[shapeKey];
+  const id = state.nextId++;
+  const name = nextName(def.name);
+  return {
+    id, kind: negative ? 'negfield' : 'field',
+    name, negative: !!negative,
+    shape: shapeKey, x: wx, y: wy, angle: 0,
+    w: def.w || 2, h: def.h || 2, r: def.r || 1.6, span: def.span || 90,
+    fieldType: 'E',
+    strength: negative ? 0 : E_PRESET.mid,
+    fieldAngle: 0,
+    bDir: 1,
+    boundary: 'virtual',
+  };
+}
+
+function makeObstacle(wx, wy){
+  const id = state.nextId++;
+  return {
+    id, kind:'obstacle', name: nextName('线形障碍'),
+    x: wx, y: wy, angle: 0, len: 3,
+  };
+}
+
+function makeEmitter(wx, wy){
+  const id = state.nextId++;
+  const color = EMITTER_COLORS[emitterColorIdx++ % EMITTER_COLORS.length];
+  return {
+    id, kind:'emitter', name: nextName('发射器'),
+    x: wx, y: wy,
+    mode: 'single',
+    chargeSign: 1,
+    charge: 1e-6,
+    mass: 1e-8,
+    v0: 10,
+    vAngle: 0,
+    continuous: true,
+    interval: 0.15,
+    trailMode: 'solid',
+    angleDensity: 'mid',
+    speedDensity: 'mid',
+    lineDensity: 'mid',
+    lineLength: 2,
+    lineAngle: 90,
+    spread: 60,
+    color,
+    acc: 0,
+    emittedOnce: false,
+  };
+}
+
+function placeComponent(cat, shapeKey, wx, wy){
+  let c = null;
+  if (cat === 'field')    c = makeField(shapeKey, wx, wy, false);
+  if (cat === 'negative') c = makeField(shapeKey, wx, wy, true);
+  if (cat === 'obstacle') c = makeObstacle(wx, wy);
+  if (cat === 'emitter')  c = makeEmitter(wx, wy);
+  if (!c) return null;
+
+  // 发射器形式由所选图例决定
+  if (cat === 'emitter') c.mode = shapeKey;
+
+  if (c.kind === 'field'){
+    c.strength = E_PRESET.mid;
+    c.boundary = (c.shape === 'infinite') ? 'virtual' : 'solid';
+  }
+  state.components.push(c);
+  selectComponent(c.id);
+  return c;
+}
+
+function selectComponent(id){
+  state.selectedId = id;
+  buildPropPanel();
+  renderCompList();
+}
+
+/* =========================================================
+   物理采样
+   ========================================================= */
+function sampleField(px, py){
+  let Ex = 0, Ey = 0, Bz = 0;
+  for (let i = 0; i < state.components.length; i++){
+    const c = state.components[i];
+    if (c.kind === 'negfield' && insideShape(c, px, py)) return { Ex:0, Ey:0, Bz:0 };
+  }
+  for (let i = 0; i < state.components.length; i++){
+    const c = state.components[i];
+    if (c.kind !== 'field') continue;
+    if (!insideShape(c, px, py)) continue;
+    if (c.fieldType === 'E'){
+      Ex += c.strength * Math.cos(c.fieldAngle);
+      Ey += c.strength * Math.sin(c.fieldAngle);
+    } else {
+      Bz += c.strength * c.bDir;
+    }
+  }
+  return { Ex, Ey, Bz };
+}
+
+/* =========================================================
+   粒子
+   ========================================================= */
+function densityCount(d){
+  return d === 'low' ? 3 : d === 'high' ? 9 : 5;
+}
+
+function spawnParticle(em, x, y, v, angleRad){
+  if (particles.length >= MAX_PARTICLES) return;
+  particles.push({
+    x, y,
+    vx: v * Math.cos(angleRad),
+    vy: v * Math.sin(angleRad),
+    q: em.chargeSign * em.charge,
+    m: em.mass,
+    color: em.color,
+    emitterId: em.id,
+    trailMode: em.trailMode,
+    trail: [[x, y]],
+    stopped: false,
+  });
+}
+
+function emitFrom(em){
+  const q = em.chargeSign * em.charge;
+  if (q === 0 || em.mass <= 0) return;
+
+  if (em.mode === 'single'){
+    spawnParticle(em, em.x, em.y, em.v0, em.vAngle * Math.PI/180);
+  }
+  else if (em.mode === 'angles'){
+    const n = densityCount(em.angleDensity);
+    const spread = em.spread * Math.PI/180;
+    for (let i = 0; i < n; i++){
+      const a = em.vAngle*Math.PI/180 - spread/2 + spread * (n === 1 ? 0.5 : i/(n-1));
+      spawnParticle(em, em.x, em.y, em.v0, a);
+    }
+  }
+  else if (em.mode === 'speeds'){
+    const n = densityCount(em.speedDensity);
+    for (let i = 0; i < n; i++){
+      const v = em.v0 * (0.4 + 1.2 * (n === 1 ? 0.5 : i/(n-1)));
+      spawnParticle(em, em.x, em.y, v, em.vAngle*Math.PI/180);
+    }
+  }
+  else if (em.mode === 'line'){
+    const n = densityCount(em.lineDensity);
+    const dx = Math.cos(em.lineAngle*Math.PI/180);
+    const dy = Math.sin(em.lineAngle*Math.PI/180);
+    for (let i = 0; i < n; i++){
+      const t = (n === 1) ? 0.5 : i/(n-1);
+      const px = em.x + (t - 0.5) * em.lineLength * dx;
+      const py = em.y + (t - 0.5) * em.lineLength * dy;
+      spawnParticle(em, px, py, em.v0, em.vAngle*Math.PI/180);
+    }
+  }
+}
+
+/* =========================================================
+   物理推进
+   ========================================================= */
+function stepParticles(h){
+  for (let i = 0; i < particles.length; i++){
+    const p = particles[i];
+    if (p.stopped) continue;
+
+    const ox = p.x, oy = p.y;
+    const { Ex, Ey, Bz } = sampleField(p.x, p.y);
+    const qm = p.q / p.m;
+
+    let vxm = p.vx + qm * Ex * h * 0.5;
+    let vym = p.vy + qm * Ey * h * 0.5;
+
+    if (Bz !== 0){
+      const tz = qm * Bz * h * 0.5;
+      const vpx = vxm + vym * tz;
+      const vpy = vym - vxm * tz;
+      const s = 2 / (1 + tz*tz);
+      const vxp = vxm + s * vpy * tz;
+      const vyp = vym - s * vpx * tz;
+      vxm = vxp; vym = vyp;
+    }
+
+    p.vx = vxm + qm * Ex * h * 0.5;
+    p.vy = vym + qm * Ey * h * 0.5;
+    p.x += p.vx * h;
+    p.y += p.vy * h;
+
+    if (checkCollision(p, ox, oy)) continue;
+
+    const t = p.trail;
+    const last = t[t.length - 1];
+    if ((p.x-last[0])*(p.x-last[0]) + (p.y-last[1])*(p.y-last[1]) > 0.0009){
+      t.push([p.x, p.y]);
+      if (t.length > MAX_TRAIL) t.shift();
+    }
+  }
+}
+
+function checkCollision(p, ox, oy){
+  for (let i = 0; i < state.components.length; i++){
+    const c = state.components[i];
+    if (c.kind !== 'field') continue;
+    if (c.boundary !== 'solid') continue;
+    if (SHAPES[c.shape].noBoundary || c.shape === 'infinite') continue;
+
+    const wasIn = insideShape(c, ox, oy);
+    const isIn  = insideShape(c, p.x, p.y);
+    if (wasIn === isIn) continue;
+
+    let a = 0, b = 1;
+    for (let k = 0; k < 22; k++){
+      const m = (a + b) / 2;
+      const mx = ox + (p.x - ox)*m, my = oy + (p.y - oy)*m;
+      if (insideShape(c, mx, my) === wasIn) a = m; else b = m;
+    }
+    p.x = ox + (p.x - ox)*a;
+    p.y = oy + (p.y - oy)*a;
+    p.vx = 0; p.vy = 0; p.stopped = true;
+    return true;
+  }
+
+  for (let i = 0; i < state.components.length; i++){
+    const c = state.components[i];
+    if (c.kind !== 'obstacle') continue;
+    const dx = Math.cos(c.angle) * c.len / 2;
+    const dy = Math.sin(c.angle) * c.len / 2;
+    const hit = segIntersect(ox, oy, p.x, p.y,
+                             c.x - dx, c.y - dy, c.x + dx, c.y + dy);
+    if (hit){
+      p.x = hit[0]; p.y = hit[1];
+      p.vx = 0; p.vy = 0; p.stopped = true;
+      return true;
+    }
+  }
+  return false;
+}
+
+function segIntersect(x1,y1,x2,y2,x3,y3,x4,y4){
+  const d = (x2-x1)*(y4-y3) - (y2-y1)*(x4-x3);
+  if (Math.abs(d) < 1e-12) return null;
+  const t = ((x3-x1)*(y4-y3) - (y3-y1)*(x4-x3)) / d;
+  const u = ((x3-x1)*(y2-y1) - (y3-y1)*(x2-x1)) / d;
+  if (t >= 0 && t <= 1 && u >= 0 && u <= 1)
+    return [x1 + t*(x2-x1), y1 + t*(y2-y1)];
+  return null;
+}
+
+/* =========================================================
+   模拟循环
+   ========================================================= */
+function simulate(dtReal){
+  const dtSim = dtReal * state.speed;
+
+  for (let i = 0; i < state.components.length; i++){
+    const c = state.components[i];
+    if (c.kind !== 'emitter') continue;
+    if (!c.continuous){
+      if (!c.emittedOnce){ emitFrom(c); c.emittedOnce = true; }
+    } else {
+      c.acc = (c.acc || 0) + dtSim;
+      let guard = 0;
+      while (c.acc >= c.interval && guard++ < 12){
+        c.acc -= c.interval;
+        emitFrom(c);
+      }
+    }
+  }
+
+  let remain = dtSim, guard = 0;
+  while (remain > 1e-12 && guard++ < 600){
+    const h = Math.min(SUB_DT, remain);
+    remain -= h;
+    stepParticles(h);
+  }
+  state.simTime += dtSim;
+}
+
+/* =========================================================
+   渲染
+   ========================================================= */
+function render(){
+  ctx.clearRect(0, 0, W, H);
+  drawGrid();
+
+  const selId = state.selectedId;
+
+  for (const c of state.components){
+    if (c.kind !== 'field' && c.kind !== 'negfield') continue;
+    const dim = selId && c.id !== selId;
+    ctx.globalAlpha = dim ? 0.07 : 1;
+    drawFieldComponent(c);
+    ctx.globalAlpha = 1;
+  }
+
+  for (const c of state.components){
+    if (c.kind !== 'obstacle') continue;
+    const dim = selId && c.id !== selId;
+    ctx.globalAlpha = dim ? 0.12 : 1;
+    drawObstacle(c);
+    ctx.globalAlpha = 1;
+  }
+
+  drawParticles();
+
+  for (const c of state.components){
+    if (c.kind !== 'emitter') continue;
+    const dim = selId && c.id !== selId;
+    ctx.globalAlpha = dim ? 0.18 : 1;
+    drawEmitter(c);
+    ctx.globalAlpha = 1;
+  }
+
+  const sel = state.components.find(c => c.id === selId);
+  if (sel) drawHandles(sel);
+
+  // 旋转中的角度指示（参考轴 + 圆弧 + 度数）
+  if (sel && drag && drag.type === 'handle' && drag.handleType === 'rot') drawRotIndicator(sel);
+
+  // 场边界吸附高亮
+  if (boundarySnap) drawBoundarySnapHint();
+
+  // 待放置组件的吸附预览
+  if (state.pending && hover) drawGhost(state.pending, hover.x, hover.y);
+
+  drawGuides();
+}
+
+/* 旋转指示：从 0°（本地 +x 轴）画到当前角度 */
+function drawRotIndicator(c){
+  const [cx, cy] = w2s(c.x, c.y);
+  const R = 54;
+  const a = -c.angle;                 // 屏幕角（y 轴向下）
+
+  ctx.save();
+  // 0° 参考轴
+  ctx.setLineDash([5, 4]);
+  ctx.strokeStyle = 'rgba(245,158,11,0.5)';
+  ctx.lineWidth = 1.2;
+  ctx.beginPath();
+  ctx.moveTo(cx, cy); ctx.lineTo(cx + R*1.9, cy);
+  ctx.stroke();
+  ctx.setLineDash([]);
+
+  // 角度圆弧
+  ctx.strokeStyle = 'rgba(245,158,11,0.9)';
+  ctx.lineWidth = 2;
+  ctx.beginPath();
+  ctx.arc(cx, cy, R, 0, a, a < 0);
+  ctx.stroke();
+
+  // 半径指示线
+  ctx.strokeStyle = 'rgba(245,158,11,0.45)';
+  ctx.lineWidth = 1;
+  ctx.beginPath();
+  ctx.moveTo(cx, cy);
+  ctx.lineTo(cx + Math.cos(a)*R, cy + Math.sin(a)*R);
+  ctx.stroke();
+
+  // 度数
+  const deg = (c.angle * 180 / Math.PI + 360) % 360;
+  const mid = a / 2;
+  const lx = cx + Math.cos(mid) * (R + 16);
+  const ly = cy + Math.sin(mid) * (R + 16);
+  ctx.font = '600 12px system-ui,sans-serif';
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+  ctx.fillStyle = 'rgba(245,158,11,0.98)';
+  ctx.fillText(deg.toFixed(1) + '°', lx, ly);
+  ctx.restore();
+}
+
+/* 场边界吸附：描亮边界 + 吸附点 + 指向场内的法线 */
+function drawBoundarySnapHint(){
+  const hit = boundarySnap;
+  const c = hit.comp;
+  if (!c) return;
+
+  const [sx, sy] = w2s(c.x, c.y);
+  ctx.save();
+  ctx.translate(sx, sy);
+  ctx.rotate(-c.angle);
+  ctx.beginPath();
+  buildShapePath(c);
+  ctx.setLineDash([]);
+  ctx.strokeStyle = 'rgba(34,211,238,0.95)';
+  ctx.lineWidth = 3;
+  ctx.shadowColor = 'rgba(34,211,238,0.7)';
+  ctx.shadowBlur = 12;
+  ctx.stroke();
+  ctx.restore();
+
+  const [px, py] = w2s(hit.x, hit.y);
+  ctx.save();
+  // 吸附点
+  ctx.beginPath();
+  ctx.arc(px, py, 6, 0, Math.PI*2);
+  ctx.fillStyle = 'rgba(34,211,238,0.95)';
+  ctx.fill();
+  ctx.strokeStyle = 'rgba(255,255,255,0.95)';
+  ctx.lineWidth = 1.8;
+  ctx.stroke();
+
+  // 法线箭头（指向场内）
+  const [ix, iy] = inwardDir(hit);
+  const [qx, qy] = w2s(hit.x + ix*0.55, hit.y + iy*0.55);
+  ctx.strokeStyle = 'rgba(34,211,238,0.95)';
+  ctx.lineWidth = 2;
+  ctx.beginPath(); ctx.moveTo(px, py); ctx.lineTo(qx, qy); ctx.stroke();
+
+  const ang = Math.atan2(qy - py, qx - px);
+  ctx.beginPath();
+  ctx.moveTo(qx, qy);
+  ctx.lineTo(qx - Math.cos(ang - 0.42)*8, qy - Math.sin(ang - 0.42)*8);
+  ctx.lineTo(qx - Math.cos(ang + 0.42)*8, qy - Math.sin(ang + 0.42)*8);
+  ctx.closePath();
+  ctx.fillStyle = 'rgba(34,211,238,0.95)';
+  ctx.fill();
+  ctx.restore();
+}
+
+/* 待放置组件的半透明预览（含吸附落点十字） */
+function pendingLabel(p){
+  if (p.cat === 'obstacle') return '线形障碍';
+  if (p.cat === 'emitter') return EMITTER_LABEL[p.key] || '发射器';
+  return (SHAPES[p.key] && SHAPES[p.key].name) || p.key;
+}
+
+function drawGhost(pending, wx, wy){
+  const key = pending.key;
+  const def = SHAPES[key] || {};
+  let g;
+  if (pending.cat === 'obstacle'){
+    g = { kind:'obstacle', shape:'line', x:wx, y:wy, angle:0, len:3 };
+  } else if (pending.cat === 'emitter'){
+    g = {
+      kind:'emitter', name: pendingLabel(pending), x:wx, y:wy, angle:0,
+      vAngle:0, color:'#38bdf8', mode: key,
+      lineLength: 2, lineAngle: 90,
+    };
+  } else {
+    g = {
+      kind: pending.cat === 'negative' ? 'negfield' : 'field',
+      shape: key, name: def.name || '', x: wx, y: wy, angle: 0,
+      w: def.w || 2, h: def.h || 2, r: def.r || 1.6, span: def.span || 90,
+      fieldType: 'E', strength: E_PRESET.mid, fieldAngle: 0, bDir: 1,
+      boundary: (key === 'infinite' || def.noBoundary) ? 'virtual' : 'solid',
+    };
+  }
+
+  ctx.save();
+  ctx.globalAlpha = 0.42;
+  if (g.kind === 'obstacle') drawObstacle(g);
+  else if (g.kind === 'emitter') drawEmitter(g);
+  else drawFieldComponent(g);
+  ctx.restore();
+
+  // 落点十字：吸附命中时更亮
+  const [sx, sy] = w2s(wx, wy);
+  ctx.save();
+  ctx.strokeStyle = snap.on ? 'rgba(56,189,248,0.9)' : 'rgba(148,163,184,0.7)';
+  ctx.lineWidth = 1.4;
+  ctx.beginPath();
+  ctx.moveTo(sx - 9, sy); ctx.lineTo(sx + 9, sy);
+  ctx.moveTo(sx, sy - 9); ctx.lineTo(sx, sy + 9);
+  ctx.stroke();
+  ctx.beginPath();
+  ctx.arc(sx, sy, 3.2, 0, Math.PI*2);
+  ctx.fillStyle = 'rgba(56,189,248,0.95)';
+  ctx.fill();
+  ctx.restore();
+}
+
+function drawGrid(){
+  // 网格步长：开启吸附时用吸附步长（所见即所吸附），否则自适应疏密
+  let worldStep = null;
+  if (snap.on && snap.step * SCALE >= 7) worldStep = snap.step;
+  if (worldStep === null){
+    worldStep = 1;
+    while (worldStep * SCALE < 55) worldStep *= 2;
+    while (worldStep * SCALE > 150) worldStep /= 2;
+  }
+  const step = worldStep * SCALE;
+  const ox = ((W/2 - view.cx*SCALE) % step + step) % step;
+  const oy = ((H/2 + view.cy*SCALE) % step + step) % step;
+
+  // 细网格
+  ctx.strokeStyle = snap.on ? 'rgba(56,189,248,0.075)' : 'rgba(148,163,184,0.055)';
+  ctx.lineWidth = 1;
+  ctx.beginPath();
+  for (let x = ox; x < W; x += step){ ctx.moveTo(x, 0); ctx.lineTo(x, H); }
+  for (let y = oy; y < H; y += step){ ctx.moveTo(0, y); ctx.lineTo(W, y); }
+  ctx.stroke();
+
+  // 主网格（每 1 米加亮，便于估算距离）
+  if (worldStep < 1){
+    const big = SCALE;                      // 1 米
+    if (big >= 18){
+      const bx = ((W/2 - view.cx*SCALE) % big + big) % big;
+      const by = ((H/2 + view.cy*SCALE) % big + big) % big;
+      ctx.strokeStyle = 'rgba(148,163,184,0.10)';
+      ctx.beginPath();
+      for (let x = bx; x < W; x += big){ ctx.moveTo(x, 0); ctx.lineTo(x, H); }
+      for (let y = by; y < H; y += big){ ctx.moveTo(0, y); ctx.lineTo(W, y); }
+      ctx.stroke();
+    }
+  }
+
+  // 原点十字
+  const [cx, cy] = w2s(0, 0);
+  ctx.strokeStyle = 'rgba(56,189,248,0.16)';
+  ctx.beginPath();
+  ctx.moveTo(cx, 0); ctx.lineTo(cx, H);
+  ctx.moveTo(0, cy); ctx.lineTo(W, cy);
+  ctx.stroke();
+}
+
+/* 吸附参考线：青色虚线（网格吸附较淡，智能对齐较亮） */
+function drawGuides(){
+  if (!guides.length) return;
+  ctx.save();
+  ctx.setLineDash([5, 5]);
+  ctx.lineWidth = 1;
+  for (const g of guides){
+    ctx.strokeStyle = g.grid ? 'rgba(56,189,248,0.22)' : 'rgba(56,189,248,0.62)';
+    ctx.beginPath();
+    if (g.axis === 'x'){
+      const [sx] = w2s(g.v, 0);
+      ctx.moveTo(sx, 0); ctx.lineTo(sx, H);
+    } else {
+      const [, sy] = w2s(0, g.v);
+      ctx.moveTo(0, sy); ctx.lineTo(W, sy);
+    }
+    ctx.stroke();
+  }
+  ctx.setLineDash([]);
+  ctx.restore();
+}
+
+function fieldColor(c){
+  if (c.kind === 'negfield') return '#94a3b8';
+  return c.fieldType === 'E' ? '#f59e0b' : '#38bdf8';
+}
+
+function drawFieldComponent(c){
+  const col = fieldColor(c);
+  const [sx, sy] = w2s(c.x, c.y);
+
+  ctx.save();
+  ctx.translate(sx, sy);
+  ctx.rotate(-c.angle);
+
+  ctx.beginPath();
+  buildShapePath(c);
+
+  const isSolid = c.boundary === 'solid';
+  ctx.fillStyle = hexA(col, c.kind === 'negfield' ? 0.10 : 0.09);
+  ctx.fill();
+
+  if (SHAPES[c.shape].noBoundary){
+    ctx.setLineDash([7, 7]);
+    ctx.strokeStyle = hexA(col, 0.45);
+    ctx.lineWidth = 1.5;
+    ctx.stroke();
+    ctx.setLineDash([]);
+  } else {
+    ctx.setLineDash(isSolid ? [] : [7, 7]);
+    if (isSolid){ ctx.shadowColor = hexA(col, 0.55); ctx.shadowBlur = 10; }
+    ctx.strokeStyle = hexA(col, isSolid ? 0.95 : 0.55);
+    ctx.lineWidth = isSolid ? 2.2 : 1.6;
+    ctx.stroke();
+    ctx.shadowBlur = 0;
+    ctx.setLineDash([]);
+  }
+  ctx.restore();
+
+  if (c.kind === 'field') drawFieldSymbols(c, col);
+
+  const [tx, ty] = w2s(c.x, c.y);
+  if (c.shape !== 'infinite' && c.shape !== 'single' && c.shape !== 'double'){
+    ctx.font = '12px system-ui,sans-serif';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    const tw = ctx.measureText(c.name).width;
+    const bw = tw + 14, bh = 18, bx = tx - bw/2, by = ty - bh/2;
+    ctx.fillStyle = 'rgba(11,17,32,0.55)';
+    ctx.beginPath();
+    if (ctx.roundRect) ctx.roundRect(bx, by, bw, bh, 6);
+    else ctx.rect(bx, by, bw, bh);
+    ctx.fill();
+    ctx.fillStyle = hexA(col, 0.95);
+    ctx.fillText(c.name, tx, ty);
+  }
+}
+
+function buildShapePath(c){
+  const S = SCALE;
+  switch(c.shape){
+    case 'rect': case 'square': case 'doubleFinite':
+      ctx.rect(-c.w*S/2, -c.h*S/2, c.w*S, c.h*S);
+      break;
+    case 'circle':
+      ctx.arc(0, 0, c.r*S, 0, Math.PI*2);
+      break;
+    case 'ellipse':
+      ctx.ellipse(0, 0, c.w*S/2, c.h*S/2, 0, 0, Math.PI*2);
+      break;
+    case 'sector': {
+      const half = c.span * Math.PI / 360;
+      ctx.moveTo(0, 0);
+      ctx.arc(0, 0, c.r*S, -half, half);
+      ctx.closePath();
+      break;
+    }
+    case 'triangle': {
+      const hw = c.w*S/2, hh = c.h*S/2;
+      ctx.moveTo(-hw, hh);
+      ctx.lineTo(hw, hh);
+      ctx.lineTo(0, -hh);
+      ctx.closePath();
+      break;
+    }
+    case 'single':
+      ctx.moveTo(0, -20000); ctx.lineTo(0, 20000);
+      break;
+    case 'double':
+      ctx.moveTo(-c.w*S/2, -20000); ctx.lineTo(-c.w*S/2, 20000);
+      ctx.moveTo( c.w*S/2, -20000); ctx.lineTo( c.w*S/2, 20000);
+      break;
+    case 'singleFinite': {
+      const hh = c.h*S/2;
+      ctx.moveTo(0, -hh); ctx.lineTo(0, hh);
+      ctx.moveTo(0, -hh); ctx.lineTo(30, -hh);
+      ctx.moveTo(0,  hh); ctx.lineTo(30,  hh);
+      break;
+    }
+    case 'infinite':
+      ctx.rect(-W, -H, W*2, H*2);
+      break;
+  }
+}
+
+function drawFieldSymbols(c, col){
+  const norm = c.fieldType === 'E'
+    ? Math.min(1, Math.max(0, Math.log(c.strength/E_MIN) / Math.log(E_MAX/E_MIN)))
+    : Math.min(1, Math.max(0, Math.log(c.strength/B_MIN) / Math.log(B_MAX/B_MIN)));
+
+  // 符号间距（世界单位）：场强越大越密；对齐世界网格 → 平移/缩放时符号跟随场体
+  let sp = 0.62 - 0.34 * norm;              // 米
+  while (sp * SCALE < 26) sp *= 1.35;       // 屏幕最小间距，避免过密
+
+  const [minx, miny, maxx, maxy] = shapeWorldBBox(c);
+  const x0 = Math.ceil(minx / sp) * sp;
+  const y0 = Math.ceil(miny / sp) * sp;
+
+  const arrowLen = clamp(sp * SCALE * 0.42, 8, 20);
+  const half = arrowLen / 2;
+  const ah = Math.min(7, arrowLen * 0.34);
+
+  ctx.save();
+  ctx.strokeStyle = hexA(col, 0.72);
+  ctx.fillStyle = hexA(col, 0.72);
+  ctx.lineWidth = 1.6;
+  ctx.lineCap = 'round';
+
+  if (c.fieldType === 'E'){
+    const ang = c.fieldAngle;
+    const dx = Math.cos(ang), dy = -Math.sin(ang);
+    for (let wy = y0; wy <= maxy; wy += sp){
+      for (let wx = x0; wx <= maxx; wx += sp){
+        if (!insideShape(c, wx, wy)) continue;
+        const [sx, sy] = w2s(wx, wy);
+        const tx = sx - dx*half, ty = sy - dy*half;
+        const hx = sx + dx*half, hy = sy + dy*half;
+        ctx.beginPath();
+        ctx.moveTo(tx, ty); ctx.lineTo(hx, hy); ctx.stroke();
+        const a1 = ang + Math.PI*0.82, a2 = ang - Math.PI*0.82;
+        ctx.beginPath();
+        ctx.moveTo(hx, hy);
+        ctx.lineTo(hx + Math.cos(a1)*ah, hy - Math.sin(a1)*ah);
+        ctx.moveTo(hx, hy);
+        ctx.lineTo(hx + Math.cos(a2)*ah, hy - Math.sin(a2)*ah);
+        ctx.stroke();
+      }
+    }
+  } else {
+    const out = c.bDir > 0;
+    const r = clamp(sp * SCALE * 0.10, 2, 6);
+    for (let wy = y0; wy <= maxy; wy += sp){
+      for (let wx = x0; wx <= maxx; wx += sp){
+        if (!insideShape(c, wx, wy)) continue;
+        const [sx, sy] = w2s(wx, wy);
+        ctx.beginPath();
+        if (out){
+          ctx.arc(sx, sy, r, 0, Math.PI*2);
+          ctx.fill();
+        } else {
+          const d = r + 1.1;
+          ctx.moveTo(sx-d, sy-d); ctx.lineTo(sx+d, sy+d);
+          ctx.moveTo(sx+d, sy-d); ctx.lineTo(sx-d, sy+d);
+          ctx.stroke();
+        }
+      }
+    }
+  }
+  ctx.restore();
+}
+
+/* 场的世界坐标包围盒（无限类场取当前可见区域） */
+function shapeWorldBBox(c){
+  const [ax, ay] = s2w(0, 0);
+  const [bx, by] = s2w(W, H);
+  let minx = Math.min(ax, bx), maxx = Math.max(ax, bx);
+  let miny = Math.min(ay, by), maxy = Math.max(ay, by);
+
+  const unbounded = (c.shape === 'infinite' || c.shape === 'single' ||
+                     c.shape === 'double'   || c.shape === 'singleFinite');
+  if (unbounded) return [minx, miny, maxx, maxy];
+
+  let hw, hh;
+  if (c.shape === 'circle' || c.shape === 'sector'){ hw = hh = c.r; }
+  else { hw = c.w/2; hh = c.h/2; }
+
+  let mnx = 1e9, mxx = -1e9, mny = 1e9, mxy = -1e9;
+  const corners = [[-hw,-hh],[hw,-hh],[hw,hh],[-hw,hh]];
+  for (const [lx, ly] of corners){
+    const [wx, wy] = toWorld(c, lx, ly);
+    mnx = Math.min(mnx, wx); mxx = Math.max(mxx, wx);
+    mny = Math.min(mny, wy); mxy = Math.max(mxy, wy);
+  }
+  return [Math.max(minx, mnx), Math.max(miny, mny),
+          Math.min(maxx, mxx), Math.min(maxy, mxy)];
+}
+
+function drawObstacle(c){
+  const dx = Math.cos(c.angle)*c.len/2;
+  const dy = Math.sin(c.angle)*c.len/2;
+  const [ax, ay] = w2s(c.x - dx, c.y - dy);
+  const [bx, by] = w2s(c.x + dx, c.y + dy);
+
+  ctx.strokeStyle = 'rgba(226,232,240,0.9)';
+  ctx.lineWidth = 4;
+  ctx.lineCap = 'round';
+  ctx.beginPath();
+  ctx.moveTo(ax, ay); ctx.lineTo(bx, by);
+  ctx.stroke();
+
+  ctx.strokeStyle = 'rgba(148,163,184,0.4)';
+  ctx.lineWidth = 1;
+  ctx.beginPath();
+  ctx.moveTo(ax, ay); ctx.lineTo(bx, by);
+  ctx.stroke();
+}
+
+function drawEmitter(em){
+  const [sx, sy] = w2s(em.x, em.y);
+
+  if (em.mode === 'line'){
+    const dx = Math.cos(em.lineAngle*Math.PI/180) * em.lineLength/2;
+    const dy = Math.sin(em.lineAngle*Math.PI/180) * em.lineLength/2;
+    const [ax, ay] = w2s(em.x - dx, em.y - dy);
+    const [bx, by] = w2s(em.x + dx, em.y + dy);
+    ctx.strokeStyle = hexA(em.color, 0.55);
+    ctx.lineWidth = 2;
+    ctx.setLineDash([4,4]);
+    ctx.beginPath(); ctx.moveTo(ax, ay); ctx.lineTo(bx, by); ctx.stroke();
+    ctx.setLineDash([]);
+  }
+
+  const ang = em.vAngle * Math.PI/180;
+  const dx = Math.cos(ang), dy = -Math.sin(ang);
+  const L = 34;
+  const ex = sx + dx*L, ey = sy + dy*L;
+
+  ctx.strokeStyle = em.color;
+  ctx.fillStyle = em.color;
+  ctx.lineWidth = 2.2;
+  ctx.beginPath(); ctx.moveTo(sx, sy); ctx.lineTo(ex, ey); ctx.stroke();
+
+  const a1 = ang + Math.PI*0.82, a2 = ang - Math.PI*0.82;
+  ctx.beginPath();
+  ctx.moveTo(ex, ey);
+  ctx.lineTo(ex + Math.cos(a1)*9, ey - Math.sin(a1)*9);
+  ctx.lineTo(ex + Math.cos(a2)*9, ey - Math.sin(a2)*9);
+  ctx.closePath();
+  ctx.fill();
+
+  ctx.beginPath();
+  ctx.arc(sx, sy, 6, 0, Math.PI*2);
+  ctx.fill();
+  ctx.strokeStyle = 'rgba(255,255,255,.85)';
+  ctx.lineWidth = 1.6;
+  ctx.stroke();
+
+  ctx.fillStyle = hexA(em.color, 0.9);
+  ctx.font = '12px system-ui,sans-serif';
+  ctx.textAlign = 'center';
+  ctx.fillText(em.name, sx, sy + 22);
+}
+
+function drawParticles(){
+  for (let i = 0; i < particles.length; i++){
+    const p = particles[i];
+    if (p.trailMode === 'none' || p.trailMode === 'endpoint') continue;
+    const t = p.trail;
+    if (t.length < 2) continue;
+
+    ctx.lineWidth = 1.6;
+    ctx.lineJoin = 'round';
+    ctx.lineCap = 'round';
+
+    if (p.trailMode === 'dashed'){
+      ctx.setLineDash([5,5]);
+      ctx.strokeStyle = hexA(p.color, 0.8);
+      ctx.beginPath();
+      let [sx, sy] = w2s(t[0][0], t[0][1]);
+      ctx.moveTo(sx, sy);
+      for (let k = 1; k < t.length; k++){
+        [sx, sy] = w2s(t[k][0], t[k][1]);
+        ctx.lineTo(sx, sy);
+      }
+      ctx.stroke();
+      ctx.setLineDash([]);
+    }
+    else if (p.trailMode === 'fade'){
+      const step = Math.max(1, Math.floor(t.length / 120));
+      for (let k = step; k < t.length; k += step){
+        const a = (k / t.length) * 0.85;
+        const [x1, y1] = w2s(t[k-step][0], t[k-step][1]);
+        const [x2, y2] = w2s(t[k][0], t[k][1]);
+        ctx.strokeStyle = hexA(p.color, a);
+        ctx.beginPath(); ctx.moveTo(x1, y1); ctx.lineTo(x2, y2); ctx.stroke();
+      }
+    }
+    else {
+      ctx.strokeStyle = hexA(p.color, 0.75);
+      ctx.beginPath();
+      let [sx, sy] = w2s(t[0][0], t[0][1]);
+      ctx.moveTo(sx, sy);
+      for (let k = 1; k < t.length; k++){
+        [sx, sy] = w2s(t[k][0], t[k][1]);
+        ctx.lineTo(sx, sy);
+      }
+      ctx.stroke();
+    }
+  }
+
+  for (let i = 0; i < particles.length; i++){
+    const p = particles[i];
+    const [sx, sy] = w2s(p.x, p.y);
+    const r = p.stopped ? 2.6 : 3.2;
+
+    ctx.beginPath();
+    ctx.arc(sx, sy, r, 0, Math.PI*2);
+    ctx.fillStyle = p.color;
+    ctx.fill();
+
+    if (p.stopped){
+      ctx.beginPath();
+      ctx.arc(sx, sy, r + 2.5, 0, Math.PI*2);
+      ctx.strokeStyle = hexA(p.color, 0.7);
+      ctx.lineWidth = 1.2;
+      ctx.stroke();
+    }
+  }
+}
+
+/* =========================================================
+   手柄（世界坐标）
+   type: sx/sx- 左右边中点  sy/sy- 上下边中点
+         ne/se/sw/nw 角点    r 半径   sp1/sp2 扇形张角
+         apex/bl/br 三角形顶点  rot 旋转  o1/o2 障碍端点  dir 发射方向
+   ========================================================= */
+function handlePoints(c){
+  const pts = [];
+  const P = (lx, ly, extra) => {
+    const [x, y] = toWorld(c, lx, ly);
+    pts.push(Object.assign({ x, y }, extra));
+  };
+
+  if (c.kind === 'field' || c.kind === 'negfield'){
+    const s = c.shape;
+
+    // 电场方向手柄（绝对世界角度，与形状角度解耦；负场无方向）
+    if (c.kind === 'field' && c.fieldType === 'E' && c.strength > 0){
+      // 半径取「短边的一半」的一半左右，避开边缘手柄
+      const minExt = (s === 'circle' || s === 'sector') ? c.r : Math.min(c.w/2, c.h/2);
+      const R = clamp(minExt * 0.55, 0.3, 1.0);
+      pts.push({
+        type:'fdir',
+        x: c.x + Math.cos(c.fieldAngle) * R,
+        y: c.y + Math.sin(c.fieldAngle) * R,
+      });
+    }
+
+    if (s === 'infinite') return pts;
+
+    if (s === 'single'){
+      P(0.9, 0, { type:'rot' });          // 无限长边界：只能旋转
+      return pts;
+    }
+    if (s === 'double'){
+      const hw = c.w/2;
+      P( hw, 0, { type:'sx' });
+      P(-hw, 0, { type:'sx-' });
+      P( hw + 0.7, 0, { type:'rot' });
+      return pts;
+    }
+    if (s === 'singleFinite'){
+      const hh = c.h/2;
+      P(0,  hh, { type:'sy' });
+      P(0, -hh, { type:'sy-' });
+      P(0.9, 0, { type:'rot' });
+      return pts;
+    }
+    if (s === 'circle'){
+      for (const a of [0, 90, 180, 270]){
+        const r = a * Math.PI/180;
+        P(Math.cos(r)*c.r, Math.sin(r)*c.r, { type:'r' });
+      }
+      return pts;
+    }
+    if (s === 'sector'){
+      const half = c.span * Math.PI / 360;
+      P(c.r, 0, { type:'r' });
+      P(Math.cos(half)*c.r,  Math.sin(half)*c.r,  { type:'sp1' });
+      P(Math.cos(-half)*c.r, Math.sin(-half)*c.r, { type:'sp2' });
+      P(c.r + 0.75, 0, { type:'rot' });
+      return pts;
+    }
+    if (s === 'triangle'){
+      const hw = c.w/2, hh = c.h/2;
+      P(0,   hh, { type:'apex' });
+      P(-hw, -hh, { type:'bl' });
+      P( hw, -hh, { type:'br' });
+      P(hw + 0.6, 0, { type:'rot' });
+      return pts;
+    }
+
+    // rect / square / ellipse / doubleFinite：4 角 + 4 边中点 + 旋转
+    const hw = c.w/2, hh = c.h/2;
+    P( hw,  hh, { type:'ne' });
+    P( hw, -hh, { type:'se' });
+    P(-hw, -hh, { type:'sw' });
+    P(-hw,  hh, { type:'nw' });
+    P( hw, 0, { type:'sx' });
+    P(0,  hh, { type:'sy' });
+    P(-hw, 0, { type:'sx-' });
+    P(0, -hh, { type:'sy-' });
+    P(Math.max(hw, hh) + 0.7, 0, { type:'rot' });
+    return pts;
+  }
+
+  if (c.kind === 'obstacle'){
+    P(-c.len/2, 0, { type:'o1' });
+    P( c.len/2, 0, { type:'o2' });
+    P( c.len/2 + 0.55, 0, { type:'rot' });
+    return pts;
+  }
+
+  if (c.kind === 'emitter'){
+    // 方向手柄跟随发射角，长度与箭头一致（屏幕像素换算到世界）
+    const ang = c.vAngle * Math.PI / 180;
+    const L = 34/SCALE + 0.2;
+    pts.push({ type:'dir', x: c.x + Math.cos(ang)*L, y: c.y + Math.sin(ang)*L });
+    return pts;
+  }
+  return pts;
+}
+
+/* 手柄外观 */
+const HANDLE_STYLE = {
+  rot:  { color:'#f59e0b', shape:'rot' },
+  fdir: { color:'#fbbf24', shape:'dot' },
+  r:    { color:'#38bdf8', shape:'dot' },
+  sp1:  { color:'#e879f9', shape:'dot' },
+  sp2:  { color:'#e879f9', shape:'dot' },
+  apex: { color:'#7dd3fc', shape:'square' },
+  bl:   { color:'#7dd3fc', shape:'square' },
+  br:   { color:'#7dd3fc', shape:'square' },
+  o1:   { color:'#22d3ee', shape:'dot' },
+  o2:   { color:'#22d3ee', shape:'dot' },
+  dir:  { color:'#a3e635', shape:'dir' },
+};
+function handleStyle(t){
+  if (HANDLE_STYLE[t]) return HANDLE_STYLE[t];
+  if (t === 'ne' || t === 'nw' || t === 'se' || t === 'sw') return { color:'#60a5fa', shape:'square' };
+  return { color:'#38bdf8', shape:'dot' };
+}
+
+function drawHandles(c){
+  const pts = handlePoints(c);
+  if (!pts.length) return;
+
+  // 角度参考轴：便于理解 0° 方向（本地 +x 轴）
+  const hasAngle = c.kind === 'obstacle' ||
+    ((c.kind === 'field' || c.kind === 'negfield') && c.shape !== 'circle' && c.shape !== 'infinite');
+  if (hasAngle){
+    const [ax, ay] = w2s(c.x, c.y);
+    const [bx, by] = w2s(...toWorld(c, 1.1, 0));
+    ctx.save();
+    ctx.setLineDash([4, 4]);
+    ctx.strokeStyle = 'rgba(148,163,184,0.38)';
+    ctx.lineWidth = 1;
+    ctx.beginPath(); ctx.moveTo(ax, ay); ctx.lineTo(bx, by); ctx.stroke();
+    ctx.setLineDash([]);
+    ctx.restore();
+  }
+
+  ctx.save();
+  for (const pt of pts){
+    const [sx, sy] = w2s(pt.x, pt.y);
+    const st = handleStyle(pt.type);
+
+    if (st.shape === 'square'){
+      ctx.beginPath();
+      ctx.rect(sx - 5, sy - 5, 10, 10);
+    } else if (st.shape === 'rot'){
+      ctx.beginPath();
+      ctx.arc(sx, sy, 6.5, 0, Math.PI*2);
+      ctx.fillStyle = 'rgba(15,23,42,.85)';
+      ctx.fill();
+      ctx.strokeStyle = st.color;
+      ctx.lineWidth = 2.2;
+      ctx.stroke();
+      ctx.beginPath();
+      ctx.arc(sx, sy, 2.2, 0, Math.PI*2);
+      ctx.fillStyle = st.color;
+      ctx.fill();
+      continue;
+    } else if (st.shape === 'dir'){
+      ctx.beginPath();
+      ctx.arc(sx, sy, 5.5, 0, Math.PI*2);
+    } else {
+      ctx.beginPath();
+      ctx.arc(sx, sy, 5.2, 0, Math.PI*2);
+    }
+
+    ctx.fillStyle = st.color;
+    ctx.fill();
+    ctx.strokeStyle = 'rgba(255,255,255,.92)';
+    ctx.lineWidth = 1.7;
+    ctx.stroke();
+  }
+  ctx.restore();
+}
+
+/* =========================================================
+   工具函数
+   ========================================================= */
+function hexA(hex, a){
+  const n = parseInt(hex.slice(1), 16);
+  const r = (n >> 16) & 255, g = (n >> 8) & 255, b = n & 255;
+  return `rgba(${r},${g},${b},${a})`;
+}
+
+/* =========================================================
+   主循环
+   ========================================================= */
+let lastT = performance.now();
+let charging = false, chargeStart = 0;
+
+function loop(t){
+  const dt = Math.min(0.05, (t - lastT) / 1000);
+  lastT = t;
+
+  if (state.running) simulate(dt);
+  render();
+
+  if (charging){
+    const prog = Math.min(1, (t - chargeStart) / 900);
+    const r = Math.round(37 + prog * 180);
+    const g = Math.round(99 - prog * 80);
+    const b = Math.round(235 - prog * 180);
+    playBtn.style.background = `rgb(${r},${g},${b})`;
+    if (prog >= 1){
+      charging = false;
+      playBtn.style.background = '';
+      resetSimulation();
+    }
+  }
+
+  requestAnimationFrame(loop);
+}
+
+/* =========================================================
+   模拟控制
+   ========================================================= */
+const playBtn = document.getElementById('playBtn');
+
+function updatePlayBtn(){
+  if (state.running) playBtn.classList.remove('paused');
+  else playBtn.classList.add('paused');
+}
+
+function resetSimulation(){
+  particles = [];
+  state.simTime = 0;
+  state.running = false;
+  for (const c of state.components) {
+    if (c.kind === 'emitter'){ c.acc = 0; c.emittedOnce = false; }
+  }
+  updatePlayBtn();
+  playBtn.animate(
+    [{transform:'scale(1)'},{transform:'scale(1.22)'},{transform:'scale(.92)'},{transform:'scale(1)'}],
+    {duration:380, easing:'ease-out'}
+  );
+}
+
+playBtn.addEventListener('pointerdown', (e) => {
+  e.preventDefault();
+  charging = true;
+  chargeStart = performance.now();
+  playBtn.setPointerCapture(e.pointerId);
+});
+
+playBtn.addEventListener('pointerup', (e) => {
+  if (charging){
+    const dur = performance.now() - chargeStart;
+    charging = false;
+    playBtn.style.background = '';
+    if (dur < 900){
+      state.running = !state.running;
+      updatePlayBtn();
+    }
+  }
+});
+
+playBtn.addEventListener('pointercancel', () => {
+  charging = false;
+  playBtn.style.background = '';
+});
+
+/* 速度 */
+const speedRange = document.getElementById('speedRange');
+const speedVal = document.getElementById('speedVal');
+const speedSeg = document.getElementById('speedSeg');
+
+const SPEED_PRESETS = [
+  { label:'慢', value:0.05 },
+  { label:'中', value:0.2  },
+  { label:'快', value:0.8  },
+];
+let speedSegBtns = [];
+
+SPEED_PRESETS.forEach(p => {
+  const b = document.createElement('button');
+  b.className = 'segBtn';
+  b.textContent = p.label;
+  b.onclick = () => setSpeed(p.value);
+  speedSeg.appendChild(b);
+  speedSegBtns.push(b);
+});
+
+function speedToSlider(v){
+  const min = 0.01, max = 3;
+  return Math.round((Math.log(v/min) / Math.log(max/min)) * 99) + 1;
+}
+function sliderToSpeed(s){
+  const min = 0.01, max = 3;
+  return min * Math.pow(max/min, (s-1)/99);
+}
+
+function setSpeed(v){
+  state.speed = v;
+  speedRange.value = speedToSlider(v);
+  speedVal.textContent = v.toFixed(2) + '×';
+  SPEED_PRESETS.forEach((p, i) => {
+    speedSegBtns[i].classList.toggle('on', Math.abs(p.value - v) < 0.001);
+  });
+}
+
+speedRange.addEventListener('input', () => {
+  setSpeed(sliderToSpeed(parseFloat(speedRange.value)));
+});
+setSpeed(0.2);
+
+/* =========================================================
+   左侧类别与图例
+   ========================================================= */
+const legend = document.getElementById('legend');
+const catBtns = document.querySelectorAll('.catBtn');
+
+const CAT_ITEMS = {
+  field: Object.keys(SHAPES),
+  negative: Object.keys(SHAPES),
+  obstacle: ['line'],
+  emitter: ['single','angles','speeds','line'],
+};
+
+const EMITTER_LABEL = {
+  single: '点发射器',
+  angles: '不同角度发射器',
+  speeds: '不同速度发射器',
+  line: '线状发射器',
+};
+
+let currentCat = null;
+
+catBtns.forEach(btn => {
+  btn.onclick = () => {
+    const cat = btn.dataset.cat;
+    if (currentCat === cat){
+      currentCat = null;
+      btn.classList.remove('on');
+      legend.innerHTML = '';
+      return;
+    }
+    currentCat = cat;
+    catBtns.forEach(b => b.classList.toggle('on', b === btn));
+    buildLegend(cat);
+  };
+});
+
+function buildLegend(cat){
+  legend.innerHTML = '';
+  const items = CAT_ITEMS[cat];
+  items.forEach(key => {
+    const d = document.createElement('div');
+    d.className = 'legendItem';
+    if (cat === 'obstacle') d.textContent = '线形障碍';
+    else if (cat === 'emitter') d.textContent = EMITTER_LABEL[key];
+    else d.textContent = SHAPES[key].name;
+
+    d.onclick = () => {
+      legend.querySelectorAll('.legendItem').forEach(x => x.classList.remove('on'));
+      d.classList.add('on');
+      state.pending = { cat, key };
+      showHint('点击画布放置 ' + d.textContent);
+    };
+    legend.appendChild(d);
+  });
+}
+
+/* =========================================================
+   提示
+   ========================================================= */
+const hintEl = document.getElementById('hint');
+let hintTimer = null;
+function showHint(text){
+  hintEl.textContent = text;
+  hintEl.style.opacity = '1';
+  clearTimeout(hintTimer);
+  hintTimer = setTimeout(() => { hintEl.style.opacity = '0'; }, 2200);
+}
+
+/* =========================================================
+   ★ 交互：拖动逻辑（优化）
+   ========================================================= */
+let drag = null;
+let hover = null;      // 待放置组件的吸附落点 {x, y}
+
+function snapshot(c){
+  return {
+    x: c.x, y: c.y, angle: c.angle, vAngle: c.vAngle, fieldAngle: c.fieldAngle,
+    w: c.w, h: c.h, r: c.r, span: c.span, len: c.len
+  };
+}
+
+/* 拖动被取消时回滚到按下时的快照 */
+function restoreSnapshot(c, s){
+  for (const k of ['x','y','angle','vAngle','fieldAngle','w','h','r','span','len']){
+    if (s[k] !== undefined) c[k] = s[k];
+  }
+}
+
+/* 悬停光标：按手柄类型给出方向提示 */
+const HANDLE_CURSOR = {
+  rot:'grab', dir:'grab', fdir:'grab', o1:'grab', o2:'grab',
+  sx:'ew-resize', 'sx-':'ew-resize', sy:'ns-resize', 'sy-':'ns-resize',
+  ne:'nesw-resize', sw:'nesw-resize', nw:'nwse-resize', se:'nwse-resize',
+  r:'nwse-resize', sp1:'ew-resize', sp2:'ew-resize',
+  apex:'ns-resize', bl:'ew-resize', br:'ew-resize',
+};
+function updateHoverCursor(sx, sy){
+  const sel = state.components.find(c => c.id === state.selectedId);
+  let cur = '';
+  if (sel && !state.pending){
+    let bestD = 15, bestT = null;
+    for (const pt of handlePoints(sel)){
+      const [hx, hy] = w2s(pt.x, pt.y);
+      const d = Math.hypot(hx - sx, hy - sy);
+      if (d < bestD){ bestD = d; bestT = pt.type; }
+    }
+    if (bestT) cur = HANDLE_CURSOR[bestT] || 'pointer';
+  }
+  if (canvas.style.cursor !== cur) canvas.style.cursor = cur;
+}
+
+let propUpdateRaf = 0;
+function schedulePropUpdate(){
+  if (propUpdateRaf) return;
+  propUpdateRaf = requestAnimationFrame(() => {
+    propUpdateRaf = 0;
+    buildPropPanel();
+  });
+}
+
+canvas.addEventListener('pointerdown', (e) => {
+  if (e.button !== 0 && e.pointerType === 'mouse') return;
+  const rect = canvas.getBoundingClientRect();
+  const sx = e.clientX - rect.left, sy = e.clientY - rect.top;
+  const [wx, wy] = s2w(sx, sy);
+
+  // 1) 优先检查选中组件的手柄（就近拾取，避免密集手柄误抓）
+  const sel = state.components.find(c => c.id === state.selectedId);
+  if (sel){
+    let best = null, bestD = 1e9;
+    for (const pt of handlePoints(sel)){
+      const [hx, hy] = w2s(pt.x, pt.y);
+      const R = (pt.type === 'rot' || pt.type === 'r') ? 15 : 13;
+      const d = Math.hypot(hx - sx, hy - sy);
+      if (d < R && d < bestD){ bestD = d; best = pt; }
+    }
+    if (best){
+      drag = {
+        type: 'handle', comp: sel, handleType: best.type,
+        startScreen: [sx, sy], startWorld: [wx, wy],
+        startComp: snapshot(sel), moved: false
+      };
+      try { canvas.setPointerCapture(e.pointerId); } catch(_){}
+      return;
+    }
+  }
+
+  // 2) 放置待定组件（按吸附点落位）
+  if (state.pending){
+    const ghostComp = state.pending.cat === 'emitter' ? { kind:'emitter' } : null;
+    const [px, py] = resolvePos(wx, wy, snap.on !== e.shiftKey, ghostComp);
+    placeComponent(state.pending.cat, state.pending.key, px, py);
+    state.pending = null;
+    hover = null;
+    guides = [];
+    legend.querySelectorAll('.legendItem').forEach(x => x.classList.remove('on'));
+    showHint('已放置，可在右上角调整属性');
+    return;
+  }
+
+  // 3) 命中测试
+  const hits = [];
+  for (let i = state.components.length - 1; i >= 0; i--){
+    const c = state.components[i];
+    if (hitTest(c, wx, wy)) hits.push(c);
+  }
+
+  if (hits.length === 0){
+    drag = { type: 'empty', startScreen: [sx, sy], startView: [view.cx, view.cy], moved: false };
+  } else {
+    let target;
+    if (state.selectedId && hits.some(c => c.id === state.selectedId)){
+      target = hits.find(c => c.id === state.selectedId);
+    } else {
+      target = hits[0];
+    }
+    drag = {
+      type: 'body', comp: target, hits: hits,
+      startScreen: [sx, sy], startWorld: [wx, wy],
+      startComp: snapshot(target), moved: false
+    };
+  }
+  try { canvas.setPointerCapture(e.pointerId); } catch(_){}
+});
+
+canvas.addEventListener('pointermove', (e) => {
+  const rect = canvas.getBoundingClientRect();
+  const sx = e.clientX - rect.left, sy = e.clientY - rect.top;
+  const [wx, wy] = s2w(sx, sy);
+  const act = snap.on !== e.shiftKey;   // Shift 临时反转吸附
+
+  // 无拖动时：更新悬停光标 + 待放置组件的吸附预览
+  if (!drag){
+    updateHoverCursor(sx, sy);
+    if (state.pending){
+      const ghostComp = state.pending.cat === 'emitter' ? { kind:'emitter' } : null;
+      const [px, py] = resolvePos(wx, wy, act, ghostComp);
+      hover = { x: px, y: py };
+      showHud(e.clientX, e.clientY,
+        `放置 <b>${pendingLabel(state.pending)}</b>` +
+        `<br>X ${fmt2(px)} m　Y ${fmt2(py)} m${snapTag(act)}`);
+    } else {
+      if (hover) hover = null;
+      if (guides.length) guides = [];
+      hideHud();
+    }
+    return;
+  }
+
+  // 第一次超过拖动阈值时确定开始拖动
+  if (!drag.moved){
+    const dxs = sx - drag.startScreen[0], dys = sy - drag.startScreen[1];
+    if (Math.hypot(dxs, dys) < 4) return;
+    drag.moved = true;
+    canvas.classList.add('grabbing');
+    canvas.style.cursor = 'grabbing';
+
+    if (drag.type === 'body' && state.selectedId !== drag.comp.id){
+      state.selectedId = drag.comp.id;
+      renderCompList();
+      schedulePropUpdate();
+    }
+  }
+
+  if (drag.type === 'handle'){
+    boundarySnap = null;
+    applyHandleDrag(drag, wx, wy, act);
+    hudForHandle(drag, e.clientX, e.clientY, act);
+    schedulePropUpdate();
+  }
+  else if (drag.type === 'body'){
+    const c = drag.comp;
+    const rawX = drag.startComp.x + (wx - drag.startWorld[0]);
+    const rawY = drag.startComp.y + (wy - drag.startWorld[1]);
+    const [px, py] = resolvePos(rawX, rawY, act, c);
+    c.x = px; c.y = py;
+    const tag = boundarySnap
+      ? `<span class="tag">${boundarySnap.comp.name} 边界</span>`
+      : snapTag(act);
+    showHud(e.clientX, e.clientY,
+      `X <b>${fmt2(c.x)}</b> m　Y <b>${fmt2(c.y)}</b> m${tag}`);
+    schedulePropUpdate();
+  }
+  else if (drag.type === 'empty'){
+    // 空白处拖动 → 平移视图（保持按下点下的世界位置不漂移）
+    view.cx = drag.startView[0] - (sx - drag.startScreen[0]) / SCALE;
+    view.cy = drag.startView[1] + (sy - drag.startScreen[1]) / SCALE;
+    guides = [];
+    boundarySnap = null;
+    hideHud();
+  }
+});
+
+canvas.addEventListener('pointerleave', () => {
+  if (!drag){ hover = null; guides = []; hideHud(); canvas.style.cursor = ''; }
+});
+
+/* 手柄拖动的读数 */
+function hudForHandle(drag, cx, cy, act){
+  const c = drag.comp, t = drag.handleType;
+  const tag = snapTag(act);
+
+  if (t === 'rot'){
+    const deg = (c.angle * 180 / Math.PI + 360) % 360;
+    showHud(cx, cy, `角度 <b>${deg.toFixed(1)}°</b>${act ? '<span class="tag">吸附 ' + snap.rotDeg + '°</span>' : ''}`);
+    return;
+  }
+  if (t === 'dir'){
+    const deg = (c.vAngle + 360) % 360;
+    showHud(cx, cy, `发射角 <b>${deg.toFixed(1)}°</b>${act ? '<span class="tag">吸附 ' + snap.rotDeg + '°</span>' : ''}`);
+    return;
+  }
+  if (t === 'fdir'){
+    const deg = (c.fieldAngle * 180 / Math.PI + 360) % 360;
+    showHud(cx, cy, `场方向 <b>${deg.toFixed(1)}°</b>${act ? '<span class="tag">吸附 5°</span>' : ''}`);
+    return;
+  }
+  if (t === 'r'){
+    showHud(cx, cy, `半径 <b>${c.r.toFixed(2)}</b> m${tag}`);
+    return;
+  }
+  if (t === 'sp1' || t === 'sp2'){
+    showHud(cx, cy, `张角 <b>${c.span.toFixed(0)}°</b>${tag}`);
+    return;
+  }
+  if (t === 'apex' || t === 'bl' || t === 'br'){
+    showHud(cx, cy, `宽 <b>${c.w.toFixed(2)}</b> m　高 <b>${c.h.toFixed(2)}</b> m${tag}`);
+    return;
+  }
+  if (t === 'o1' || t === 'o2'){
+    const deg = (c.angle * 180 / Math.PI + 360) % 360;
+    showHud(cx, cy, `长度 <b>${c.len.toFixed(2)}</b> m　角度 <b>${deg.toFixed(1)}°</b>${tag}`);
+    return;
+  }
+  // 角点 / 边中点
+  showHud(cx, cy, `宽 <b>${c.w.toFixed(2)}</b> m　高 <b>${c.h.toFixed(2)}</b> m${tag}`);
+}
+
+function applyHandleDrag(drag, wx, wy, act){
+  const c = drag.comp;
+  const s = drag.startComp;
+  const t = drag.handleType;
+  const snapOn = act;            // 吸附生效
+  const free = !snapOn;
+
+  // 半宽/半高吸附：中心在网格上时四边也落在网格
+  const half = (v, min) => free ? Math.max(min, v) : Math.max(snap.step, roundTo(v, snap.step));
+
+  /* ---------- 旋转（场 / 障碍通用，绕自身中心） ---------- */
+  if (t === 'rot'){
+    const dx = wx - c.x, dy = wy - c.y;
+    if (Math.hypot(dx, dy) < 1e-6) return;
+    // 0° = 本地 +x 轴；吸附时按 5° 递进并自动贴合正轴
+    c.angle = snapAngle(Math.atan2(dy, dx), snapOn ? snap.rotDeg : 0);
+    return;
+  }
+
+  /* ---------- 电场方向手柄 ---------- */
+  if (t === 'fdir'){
+    const dx = wx - c.x, dy = wy - c.y;
+    if (Math.hypot(dx, dy) < 1e-6) return;
+    c.fieldAngle = snapAngle(Math.atan2(dy, dx), snapOn ? 5 : 0);
+    return;
+  }
+
+  /* ---------- 发射器方向手柄 ---------- */
+  if (t === 'dir'){    const dx = wx - c.x, dy = wy - c.y;
+    if (Math.hypot(dx, dy) < 1e-6) return;
+    let deg = Math.atan2(dy, dx) * 180 / Math.PI;
+    if (deg < 0) deg += 360;
+
+    if (snapOn){
+      deg = Math.round(deg / snap.rotDeg) * snap.rotDeg;
+      // 贴在某个场边界上时，方向自动贴合「射入场内」的法线
+      const hit = nearestFieldBoundary(c.x, c.y, 0.12, c.id);
+      if (hit){
+        const [ix, iy] = inwardDir(hit);
+        const target = Math.atan2(iy, ix) * 180 / Math.PI;
+        let d = Math.abs(((deg - target + 540) % 360) - 180);
+        if (d < 10){
+          deg = (target + 360) % 360;
+          boundarySnap = { ...hit, dirOnly: true };
+          showHint('发射方向已对齐 ' + hit.comp.name + ' 边界法线');
+        }
+      }
+    }
+    c.vAngle = ((deg % 360) + 360) % 360;
+    return;
+  }
+
+  /* ---------- 障碍端点 ---------- */
+  if (t === 'o1' || t === 'o2'){
+    const h = s.len / 2;
+    const cosA = Math.cos(s.angle), sinA = Math.sin(s.angle);
+    const end1 = [s.x - h*cosA, s.y - h*sinA];  // o1
+    const end2 = [s.x + h*cosA, s.y + h*sinA];  // o2
+
+    const fixedEnd = (t === 'o1') ? end2 : end1;
+    const newEnd = snapEndpoint(fixedEnd, [wx, wy], snapOn);
+
+    const newLen = Math.hypot(newEnd[0] - fixedEnd[0], newEnd[1] - fixedEnd[1]);
+    let newAngle;
+    if (t === 'o1')
+      newAngle = Math.atan2(fixedEnd[1] - newEnd[1], fixedEnd[0] - newEnd[0]);
+    else
+      newAngle = Math.atan2(newEnd[1] - fixedEnd[1], newEnd[0] - fixedEnd[0]);
+
+    // 角度吸附后，以“固定端点”为锚重新求中心，保证另一端不漂移
+    const a = snapAngle(newAngle, 0);
+    const dirX = (t === 'o1') ? -Math.cos(a) : Math.cos(a);
+    const dirY = (t === 'o1') ? -Math.sin(a) : Math.sin(a);
+    const L = Math.max(0.3, newLen);
+
+    c.len = L;
+    c.angle = a;
+    c.x = fixedEnd[0] + dirX * L / 2;
+    c.y = fixedEnd[1] + dirY * L / 2;
+    return;
+  }
+
+  /* ---------- 圆形 / 扇形半径 ---------- */
+  if (t === 'r'){
+    const [lx, ly] = toLocal(c, wx, wy);
+    const v = Math.hypot(lx, ly);
+    c.r = free ? Math.max(0.2, v) : Math.max(snap.step, roundTo(v, snap.step));
+    return;
+  }
+
+  /* ---------- 扇形张角（对称张开） ---------- */
+  if (t === 'sp1' || t === 'sp2'){
+    const [lx, ly] = toLocal(c, wx, wy);
+    if (Math.hypot(lx, ly) < 1e-6) return;
+    let a = Math.abs(Math.atan2(ly, lx));            // 0 ~ π
+    if (snapOn) a = Math.round(a / (5*Math.PI/180)) * (5*Math.PI/180);
+    c.span = clamp(a * 360 / Math.PI, 6, 350);       // 单侧角×2
+    return;
+  }
+
+  /* ---------- 三角形顶点 ---------- */
+  if (t === 'apex'){
+    const [lx, ly] = toLocal(c, wx, wy);
+    const hv = half(Math.abs(ly), 0.15);
+    c.h = Math.max(0.3, hv * 2);
+    return;
+  }
+  if (t === 'bl' || t === 'br'){
+    const [lx] = toLocal(c, wx, wy);
+    const hv = half(Math.abs(lx), 0.15);
+    c.w = Math.max(0.3, hv * 2);
+    return;
+  }
+
+  /* ---------- 角点：同时改宽高 ---------- */
+  if (t === 'ne' || t === 'nw' || t === 'se' || t === 'sw'){
+    const [lx, ly] = toLocal(c, wx, wy);
+    let hwv = Math.abs(lx), hhv = Math.abs(ly);
+    if (c.shape === 'square'){                      // 正方形保持等边
+      const m = Math.max(hwv, hhv);
+      hwv = hhv = m;
+    }
+    const w = half(hwv, 0.15) * 2;
+    const h = half(hhv, 0.15) * 2;
+    c.w = Math.max(0.3, w);
+    c.h = Math.max(0.3, h);
+    return;
+  }
+
+  /* ---------- 边中点：只改一个方向 ---------- */
+  if (t === 'sx' || t === 'sx-' || t === 'sy' || t === 'sy-'){
+    const [lx, ly] = toLocal(c, wx, wy);
+    const isAxisX = (t === 'sx' || t === 'sx-');
+
+    if (c.shape === 'circle' || c.shape === 'sector'){
+      const v = isAxisX ? Math.abs(lx) : Math.abs(ly);
+      c.r = free ? Math.max(0.2, v) : Math.max(snap.step, roundTo(v, snap.step));
+      return;
+    }
+    const v = half(isAxisX ? Math.abs(lx) : Math.abs(ly), 0.15) * 2;
+    if (isAxisX) c.w = Math.max(0.3, v);
+    else         c.h = Math.max(0.3, v);
+    return;
+  }
+}
+
+function finishDrag(e, cancelled){
+  canvas.classList.remove('grabbing');
+  canvas.style.cursor = '';
+  if (!drag) return;
+  const d = drag;
+  drag = null;
+  guides = [];
+  boundarySnap = null;
+  hideHud();
+
+  // 落位精度归一，避免浮点残值（如 1.4999999）
+  if (d.type === 'body' && d.moved){
+    d.comp.x = Math.round(d.comp.x * 1e4) / 1e4;
+    d.comp.y = Math.round(d.comp.y * 1e4) / 1e4;
+  }
+  if (!cancelled){
+    if (d.type === 'empty' && !d.moved){
+      // 空白单击 → 取消选中
+      if (state.selectedId !== null){
+        state.selectedId = null;
+        buildPropPanel();
+        renderCompList();
+      }
+    }
+    else if (d.type === 'body' && !d.moved){
+      // 单击组件：切换选中 / 取消选中
+      const hits = d.hits;
+      const curIdx = hits.findIndex(c => c.id === state.selectedId);
+      if (curIdx >= 0){
+        if (hits.length === 1){
+          // 仅一个候选且已选中 → 取消选中
+          state.selectedId = null;
+        } else {
+          state.selectedId = hits[(curIdx + 1) % hits.length].id;
+        }
+      } else {
+        state.selectedId = hits[0].id;
+      }
+      buildPropPanel();
+      renderCompList();
+    }
+    else if (d.type === 'body' && d.moved){
+      if (state.selectedId !== d.comp.id) state.selectedId = d.comp.id;
+      buildPropPanel();
+      renderCompList();
+    }
+    else if (d.type === 'handle'){
+      buildPropPanel();
+      renderCompList();
+    }
+  }
+
+  try { canvas.releasePointerCapture(e.pointerId); } catch(_){}
+}
+
+canvas.addEventListener('pointerup', (e) => finishDrag(e, false));
+canvas.addEventListener('pointercancel', (e) => finishDrag(e, true));
+
+/* =========================================================
+   ★ 视图缩放 / 平移
+   ========================================================= */
+function updateZoomUI(){
+  const z = document.getElementById('zoomVal');
+  if (z) z.textContent = Math.round(SCALE) + '%';
+}
+function setScaleAt(ns, sx, sy){
+  const [bx, by] = s2w(sx, sy);
+  SCALE = clamp(ns, SCALE_MIN, SCALE_MAX);
+  const [ax, ay] = s2w(sx, sy);
+  view.cx += bx - ax;
+  view.cy += by - ay;
+  updateZoomUI();
+}
+function resetView(){ SCALE = 100; view.cx = 0; view.cy = 0; updateZoomUI(); }
+
+canvas.addEventListener('wheel', (e) => {
+  e.preventDefault();
+  const rect = canvas.getBoundingClientRect();
+  const sx = e.clientX - rect.left, sy = e.clientY - rect.top;
+  setScaleAt(SCALE * (e.deltaY > 0 ? 0.88 : 1.14), sx, sy);
+}, { passive: false });
+
+const zoomSeg = document.getElementById('zoomSeg');
+if (zoomSeg){
+  zoomSeg.querySelectorAll('[data-z]').forEach(b => {
+    b.onclick = () => {
+      const z = b.dataset.z;
+      if (z === 'in') setScaleAt(SCALE * 1.25, W/2, H/2);
+      else if (z === 'out') setScaleAt(SCALE * 0.8, W/2, H/2);
+      else resetView();
+    };
+  });
+}
+updateZoomUI();
+
+/* =========================================================
+   ★ 吸附控件
+   ========================================================= */
+const snapToggleEl = document.getElementById('snapToggle');
+const snapSegEl = document.getElementById('snapSeg');
+
+function updateSnapUI(){
+  if (snapToggleEl){
+    snapToggleEl.classList.toggle('on', snap.on);
+    snapToggleEl.textContent = snap.on ? '开' : '关';
+  }
+  if (snapSegEl){
+    snapSegEl.classList.toggle('on', snap.on);
+    snapSegEl.querySelectorAll('[data-step]').forEach(b => {
+      b.classList.toggle('on', Math.abs(parseFloat(b.dataset.step) - snap.step) < 1e-6);
+    });
+  }
+}
+
+if (snapToggleEl){
+  snapToggleEl.onclick = () => {
+    snap.on = !snap.on;
+    guides = [];
+    updateSnapUI();
+    showHint(snap.on
+      ? `网格吸附已开启（${snap.step} m），按住 Shift 可临时关闭`
+      : '网格吸附已关闭，按住 Shift 可临时开启');
+  };
+}
+if (snapSegEl){
+  snapSegEl.querySelectorAll('[data-step]').forEach(b => {
+    b.onclick = () => {
+      snap.step = parseFloat(b.dataset.step);
+      guides = [];
+      updateSnapUI();
+    };
+  });
+}
+updateSnapUI();
+
+/* =========================================================
+   ★ 命中测试（优化：单边 / 无限场）
+   ========================================================= */
+function hitTest(c, wx, wy){
+  if (c.kind === 'field' || c.kind === 'negfield'){
+    // 无限场覆盖全屏，无法通过点击精确选中，只能从列表选择
+    if (c.shape === 'infinite') return false;
+
+    // 单边界：右侧半平面均可点中，边界线左侧 0.25m 内也视为命中
+    if (c.shape === 'single'){
+      const [lx] = toLocal(c, wx, wy);
+      return lx > -0.25;
+    }
+    // 双边界：整个竖直带范围，外扩 0.25m
+    if (c.shape === 'double'){
+      const [lx] = toLocal(c, wx, wy);
+      return Math.abs(lx) < c.w / 2 + 0.25;
+    }
+    // 单边界有限：右侧矩形带，外扩 0.25m
+    if (c.shape === 'singleFinite'){
+      const [lx, ly] = toLocal(c, wx, wy);
+      return lx > -0.25 && Math.abs(ly) < c.h / 2 + 0.25;
+    }
+    return insideShape(c, wx, wy);
+  }
+  if (c.kind === 'obstacle'){
+    const dx = Math.cos(c.angle)*c.len/2;
+    const dy = Math.sin(c.angle)*c.len/2;
+    return distToSeg(wx, wy, c.x-dx, c.y-dy, c.x+dx, c.y+dy) < 0.2;
+  }
+  if (c.kind === 'emitter'){
+    return Math.hypot(wx - c.x, wy - c.y) < 0.32;
+  }
+  return false;
+}
+
+function distToSeg(px, py, x1, y1, x2, y2){
+  const dx = x2-x1, dy = y2-y1;
+  const l2 = dx*dx + dy*dy;
+  if (l2 === 0) return Math.hypot(px-x1, py-y1);
+  let t = ((px-x1)*dx + (py-y1)*dy) / l2;
+  t = Math.max(0, Math.min(1, t));
+  return Math.hypot(px - (x1+t*dx), py - (y1+t*dy));
+}
+
+/* =========================================================
+   属性面板
+   ========================================================= */
+const propPanel = document.getElementById('propPanel');
+
+function el(tag, cls){
+  const e = document.createElement(tag);
+  if (cls) e.className = cls;
+  return e;
+}
+
+function segCtrl(options, value, onChange){
+  const wrap = el('div','seg');
+  const btns = [];
+  options.forEach(o => {
+    const b = el('button','segBtn');
+    b.textContent = o.label;
+    if (o.value === value) b.classList.add('on');
+    b.onclick = () => {
+      btns.forEach(x => x.classList.remove('on'));
+      b.classList.add('on');
+      onChange(o.value);
+    };
+    wrap.appendChild(b);
+    btns.push(b);
+  });
+  return wrap;
+}
+
+function logSliderCtrl(min, max, value, onChange, fmt){
+  const wrap = el('div','sliderWrap');
+  const input = el('input');
+  input.type = 'range'; input.min = 0; input.max = 1000;
+  const toS = v => Math.round(Math.log(v/min) / Math.log(max/min) * 1000);
+  const toV = s => min * Math.pow(max/min, s/1000);
+  input.value = toS(value);
+  const out = el('span','sliderVal');
+  out.textContent = fmt(value);
+  input.oninput = () => {
+    const v = toV(parseFloat(input.value));
+    out.textContent = fmt(v);
+    onChange(v);
+  };
+  wrap.append(input, out);
+  return wrap;
+}
+
+function sliderCtrl(min, max, value, onChange, fmt){
+  const wrap = el('div','sliderWrap');
+  const input = el('input');
+  input.type = 'range'; input.min = min; input.max = max;
+  input.step = (max - min) / 500;
+  input.value = value;
+  const out = el('span','sliderVal');
+  out.textContent = fmt(value);
+  input.oninput = () => {
+    const v = parseFloat(input.value);
+    out.textContent = fmt(v);
+    onChange(v);
+  };
+  wrap.append(input, out);
+  return wrap;
+}
+
+/* 角度控件：滑杆 + 可直接输入的角度框（0~360 循环） */
+function angleSlider(deg, onChange){
+  const start = ((deg % 360) + 360) % 360;
+  const wrap = el('div','sliderWrap');
+  const range = el('input');
+  range.type = 'range'; range.min = 0; range.max = 360; range.step = 1;
+  range.value = start;
+  const num = el('input');
+  num.type = 'number'; num.className = 'numMini';
+  num.min = 0; num.max = 360; num.step = 1;
+  num.value = Math.round(start * 10) / 10;
+
+  range.oninput = () => {
+    const v = parseFloat(range.value);
+    num.value = Math.round(v * 10) / 10;
+    onChange(v);
+  };
+  num.oninput = () => {
+    let v = parseFloat(num.value);
+    if (isNaN(v)) return;
+    v = ((v % 360) + 360) % 360;
+    range.value = v;
+    onChange(v);
+  };
+  wrap.append(range, num);
+  return wrap;
+}
+
+function numCtrl(value, onChange, unit){
+  const wrap = el('div','numWrap');
+  const input = el('input');
+  input.type = 'number'; input.value = value;
+  input.oninput = () => {
+    const v = parseFloat(input.value);
+    if (!isNaN(v)) onChange(v);
+  };
+  wrap.appendChild(input);
+  if (unit){
+    const u = el('span','unit');
+    u.textContent = unit;
+    wrap.appendChild(u);
+  }
+  return wrap;
+}
+
+function row(label, node, extra){
+  const r = el('div','row');
+  const l = el('div','rowLabel');
+  l.textContent = label;
+  if (extra){
+    const b = el('b'); b.textContent = extra; l.appendChild(b);
+  }
+  r.appendChild(l);
+  r.appendChild(node);
+  return r;
+}
+
+function sectionTitle(text){
+  const d = el('div','sectionTitle');
+  d.textContent = text;
+  return d;
+}
+
+/* 位置 X / Y 并排，版面更匀称 */
+function posGrid(c){
+  const wrap = el('div','posGrid');
+  const mk = (lab, val, on) => {
+    const cell = el('div','posCell');
+    const s = el('span'); s.textContent = lab;
+    const inp = el('input');
+    inp.type = 'number'; inp.step = '0.1'; inp.value = round2(val);
+    inp.oninput = () => { const v = parseFloat(inp.value); if (!isNaN(v)) on(v); };
+    const u = el('span','u'); u.textContent = 'm';
+    cell.append(s, inp, u);
+    return cell;
+  };
+  wrap.appendChild(mk('X', c.x, v => c.x = v));
+  wrap.appendChild(mk('Y', c.y, v => c.y = v));
+  return wrap;
+}
+
+function deleteBtn(c){
+  const b = el('button','delBtn');
+  b.textContent = '删除该组件';
+  b.onclick = () => {
+    const i = state.components.indexOf(c);
+    if (i >= 0) state.components.splice(i, 1);
+    if (state.selectedId === c.id) state.selectedId = null;
+    buildPropPanel();
+    renderCompList();
+  };
+  return b;
+}
+
+function buildPropPanel(){
+  const keepScroll = propPanel.scrollTop;
+  propPanel.innerHTML = '';
+  const c = state.components.find(x => x.id === state.selectedId);
+  if (!c){ propPanel.style.display = 'none'; return; }
+  propPanel.style.display = 'block';
+
+  const title = el('div','pTitle');
+  title.innerHTML = `<span>${c.name}</span><small>${
+    c.kind === 'field' ? '电场/磁场' :
+    c.kind === 'negfield' ? '负场' :
+    c.kind === 'obstacle' ? '障碍' : '发射器'
+  }</small>`;
+  propPanel.appendChild(title);
+
+  if (c.kind === 'field') buildFieldProps(c);
+  else if (c.kind === 'negfield') buildNegFieldProps(c);
+  else if (c.kind === 'obstacle') buildObstacleProps(c);
+  else if (c.kind === 'emitter') buildEmitterProps(c);
+
+  propPanel.appendChild(deleteBtn(c));
+  propPanel.scrollTop = keepScroll;
+}
+
+function buildFieldProps(c){
+  propPanel.appendChild(sectionTitle('场属性'));
+  propPanel.appendChild(row('场类型', segCtrl(
+    [{label:'电场', value:'E'}, {label:'磁场', value:'B'}],
+    c.fieldType,
+    v => {
+      c.fieldType = v;
+      c.strength = v === 'E' ? E_PRESET.mid : B_PRESET.mid;
+      buildPropPanel();
+    }
+  )));
+
+  if (c.fieldType === 'E'){
+    propPanel.appendChild(row('电场方向', angleSlider(
+      c.fieldAngle * 180 / Math.PI,
+      v => { c.fieldAngle = v * Math.PI/180; }
+    )));
+  } else {
+    propPanel.appendChild(row('磁场方向', segCtrl(
+      [{label:'垂直屏幕向外', value:1}, {label:'垂直屏幕向里', value:-1}],
+      c.bDir,
+      v => { c.bDir = v; }
+    )));
+  }
+
+  const preset = c.fieldType === 'E' ? E_PRESET : B_PRESET;
+  const min = c.fieldType === 'E' ? E_MIN : B_MIN;
+  const max = c.fieldType === 'E' ? E_MAX : B_MAX;
+  const unit = c.fieldType === 'E' ? 'N/C' : 'T';
+
+  function matchPreset(v){
+    if (Math.abs(v - preset.weak) < 1e-9) return 'weak';
+    if (Math.abs(v - preset.mid) < 1e-9) return 'mid';
+    if (Math.abs(v - preset.strong) < 1e-9) return 'strong';
+    return null;
+  }
+
+  const segWrap = segCtrl(
+    [
+      {label:'弱', value:'weak'},
+      {label:'中', value:'mid'},
+      {label:'强', value:'strong'},
+    ],
+    matchPreset(c.strength),
+    v => {
+      c.strength = preset[v];
+      buildPropPanel();
+    }
+  );
+
+  if (!matchPreset(c.strength)){
+    segWrap.querySelectorAll('.segBtn').forEach(b => b.classList.remove('on'));
+    const tag = el('span');
+    tag.textContent = '自定义';
+    tag.style.cssText = 'font-size:11px;color:#f59e0b;margin-left:6px;';
+    segWrap.appendChild(tag);
+  }
+
+  propPanel.appendChild(row('场大小', segWrap));
+  propPanel.appendChild(row('数值', logSliderCtrl(
+    min, max, c.strength,
+    v => { c.strength = v; },
+    v => v.toPrecision(2) + ' ' + unit
+  )));
+
+  if (!SHAPES[c.shape].noBoundary){
+    propPanel.appendChild(row('边界属性', segCtrl(
+      [{label:'实边界', value:'solid'}, {label:'虚边界', value:'virtual'}],
+      c.boundary,
+      v => { c.boundary = v; }
+    )));
+  }
+
+  if (!(c.shape === 'infinite' || c.shape === 'single' || c.shape === 'double')){
+    propPanel.appendChild(sectionTitle('形状'));
+    addSizeControls(c);
+  }
+
+  propPanel.appendChild(sectionTitle('变换'));
+  propPanel.appendChild(row('角度', angleSlider(
+    c.angle * 180 / Math.PI,
+    v => { c.angle = v * Math.PI/180; }
+  )));
+
+  propPanel.appendChild(row('位置', posGrid(c)));
+}
+
+function addSizeControls(c){
+  const s = c.shape;
+  if (s === 'infinite' || s === 'single' || s === 'double') return;
+
+  if (s === 'circle'){
+    propPanel.appendChild(row('半径', sliderCtrl(
+      0.2, 6, c.r, v => c.r = v, v => v.toFixed(2) + ' m'
+    )));
+  }
+  else if (s === 'sector'){
+    propPanel.appendChild(row('半径', sliderCtrl(
+      0.2, 6, c.r, v => c.r = v, v => v.toFixed(2) + ' m'
+    )));
+    propPanel.appendChild(row('圆心角', sliderCtrl(
+      10, 350, c.span, v => c.span = v, v => Math.round(v) + '°'
+    )));
+  }
+  else {
+    propPanel.appendChild(row('长（局部 X）', sliderCtrl(
+      0.3, 10, c.w, v => c.w = v, v => v.toFixed(2) + ' m'
+    )));
+    propPanel.appendChild(row('宽（局部 Y）', sliderCtrl(
+      0.3, 10, c.h, v => c.h = v, v => v.toFixed(2) + ' m'
+    )));
+  }
+}
+
+function buildNegFieldProps(c){
+  const tip = el('div');
+  tip.textContent = '负场区域内电场与磁场均归零，不显示方向与大小。';
+  tip.style.cssText = 'font-size:11.5px;color:#94a3b8;line-height:1.5;margin-bottom:12px;';
+  propPanel.appendChild(tip);
+
+  if (!(c.shape === 'infinite' || c.shape === 'single' || c.shape === 'double')){
+    propPanel.appendChild(sectionTitle('形状'));
+    addSizeControls(c);
+  }
+
+  propPanel.appendChild(sectionTitle('变换'));
+  propPanel.appendChild(row('角度', angleSlider(
+    c.angle * 180 / Math.PI,
+    v => { c.angle = v * Math.PI/180; }
+  )));
+
+  propPanel.appendChild(row('位置', posGrid(c)));
+}
+
+function buildObstacleProps(c){
+  propPanel.appendChild(sectionTitle('参数'));
+  propPanel.appendChild(row('长度', sliderCtrl(
+    0.3, 10, c.len, v => c.len = v, v => v.toFixed(2) + ' m'
+  )));
+  propPanel.appendChild(sectionTitle('变换'));
+  propPanel.appendChild(row('角度', angleSlider(
+    c.angle * 180 / Math.PI,
+    v => { c.angle = v * Math.PI/180; }
+  )));
+  propPanel.appendChild(row('位置', posGrid(c)));
+}
+
+function buildEmitterProps(c){
+  propPanel.appendChild(sectionTitle('发射器'));
+  propPanel.appendChild(row('发射器形式', segCtrl(
+    [
+      {label:'单点', value:'single'},
+      {label:'不同角度', value:'angles'},
+      {label:'不同速度', value:'speeds'},
+      {label:'线状', value:'line'},
+    ],
+    c.mode,
+    v => { c.mode = v; buildPropPanel(); }
+  )));
+
+  propPanel.appendChild(row('电荷正负', segCtrl(
+    [{label:'正电荷', value:1}, {label:'负电荷', value:-1}],
+    c.chargeSign,
+    v => { c.chargeSign = v; }
+  )));
+
+  propPanel.appendChild(row('电荷量', logSliderCtrl(
+    1e-9, 1e-3, c.charge,
+    v => c.charge = v,
+    v => v.toExponential(1) + ' C'
+  )));
+
+  propPanel.appendChild(row('质量', logSliderCtrl(
+    1e-12, 1e-5, c.mass,
+    v => c.mass = v,
+    v => v.toExponential(1) + ' kg'
+  )));
+
+  propPanel.appendChild(row('初速度大小', sliderCtrl(
+    0.5, 100, c.v0, v => c.v0 = v, v => v.toFixed(1) + ' m/s'
+  )));
+
+  propPanel.appendChild(row('初速度方向', angleSlider(
+    c.vAngle, v => c.vAngle = v
+  )));
+
+  if (c.mode !== 'single') propPanel.appendChild(sectionTitle('发射特性'));
+  if (c.mode === 'angles'){
+    propPanel.appendChild(row('角度疏密', segCtrl(
+      [{label:'稀', value:'low'}, {label:'中', value:'mid'}, {label:'密', value:'high'}],
+      c.angleDensity, v => c.angleDensity = v
+    )));
+    propPanel.appendChild(row('扩散角度', sliderCtrl(
+      5, 360, c.spread, v => c.spread = v, v => Math.round(v) + '°'
+    )));
+  }
+  if (c.mode === 'speeds'){
+    propPanel.appendChild(row('速度疏密', segCtrl(
+      [{label:'稀', value:'low'}, {label:'中', value:'mid'}, {label:'密', value:'high'}],
+      c.speedDensity, v => c.speedDensity = v
+    )));
+  }
+  if (c.mode === 'line'){
+    propPanel.appendChild(row('线的疏密', segCtrl(
+      [{label:'稀', value:'low'}, {label:'中', value:'mid'}, {label:'密', value:'high'}],
+      c.lineDensity, v => c.lineDensity = v
+    )));
+    propPanel.appendChild(row('线的长度', sliderCtrl(
+      0.2, 10, c.lineLength, v => c.lineLength = v, v => v.toFixed(2) + ' m'
+    )));
+    propPanel.appendChild(row('线的角度', sliderCtrl(
+      0, 360, c.lineAngle, v => c.lineAngle = v, v => Math.round(v) + '°'
+    )));
+  }
+
+  propPanel.appendChild(sectionTitle('发射节奏'));
+  propPanel.appendChild(row('持续发射', segCtrl(
+    [{label:'是', value:true}, {label:'否', value:false}],
+    c.continuous,
+    v => { c.continuous = v; c.emittedOnce = false; }
+  )));
+
+  if (c.continuous){
+    propPanel.appendChild(row('发射间隔', segCtrl(
+      [{label:'稀', value:0.4}, {label:'中', value:0.15}, {label:'密', value:0.05}],
+      c.interval,
+      v => { c.interval = v; buildPropPanel(); }
+    )));
+    propPanel.appendChild(row('间隔数值', sliderCtrl(
+      0.01, 1.5, c.interval, v => c.interval = v, v => v.toFixed(3) + ' s'
+    )));
+  }
+
+  propPanel.appendChild(sectionTitle('轨迹'));
+  propPanel.appendChild(row('轨迹显示', segCtrl(
+    [
+      {label:'不显示', value:'none'},
+      {label:'实线', value:'solid'},
+      {label:'虚线', value:'dashed'},
+      {label:'渐弱', value:'fade'},
+      {label:'仅终点', value:'endpoint'},
+    ],
+    c.trailMode,
+    v => { c.trailMode = v; }
+  )));
+
+  propPanel.appendChild(sectionTitle('变换'));
+  propPanel.appendChild(row('位置', posGrid(c)));
+}
+
+function round2(v){ return Math.round(v * 100) / 100; }
+
+/* =========================================================
+   组件列表
+   ========================================================= */
+const listPanel = document.getElementById('listPanel');
+const listHeader = document.getElementById('listHeader');
+const listBody = document.getElementById('listBody');
+
+listHeader.onclick = () => listPanel.classList.toggle('open');
+listPanel.classList.add('open');
+
+function renderCompList(){
+  listBody.innerHTML = '';
+  if (state.components.length === 0){
+    const t = el('div','emptyTip');
+    t.textContent = '暂无组件';
+    listBody.appendChild(t);
+    return;
+  }
+  state.components.forEach(c => {
+    const item = el('div','compItem');
+    if (c.id === state.selectedId) item.classList.add('on');
+
+    const dot = el('span','dot');
+    let col = '#94a3b8';
+    if (c.kind === 'field') col = c.fieldType === 'E' ? '#f59e0b' : '#38bdf8';
+    if (c.kind === 'negfield') col = '#94a3b8';
+    if (c.kind === 'obstacle') col = '#e2e8f0';
+    if (c.kind === 'emitter') col = c.color;
+    dot.style.background = col;
+
+    const nm = el('span','nm');
+    nm.textContent = c.name;
+
+    const x = el('span','x');
+    x.textContent = '×';
+    x.onclick = (e) => {
+      e.stopPropagation();
+      const i = state.components.indexOf(c);
+      if (i >= 0) state.components.splice(i, 1);
+      if (state.selectedId === c.id) state.selectedId = null;
+      buildPropPanel();
+      renderCompList();
+    };
+
+    item.append(dot, nm, x);
+    item.onclick = () => selectComponent(c.id);
+    listBody.appendChild(item);
+  });
+}
+
+/* =========================================================
+   键盘快捷键
+   ========================================================= */
+window.addEventListener('keydown', (e) => {
+  // 在输入框内输入时不触发画布快捷键
+  const tag = e.target && e.target.tagName;
+  if (tag === 'INPUT' || tag === 'SELECT' || tag === 'TEXTAREA') return;
+
+  if (e.code === 'Space'){
+    e.preventDefault();
+    state.running = !state.running;
+    updatePlayBtn();
+  }
+  if (e.key === '+' || e.key === '=' || e.code === 'NumpadAdd'){
+    e.preventDefault(); setScaleAt(SCALE * 1.2, W/2, H/2);
+  }
+  if (e.key === '-' || e.key === '_' || e.code === 'NumpadSubtract'){
+    e.preventDefault(); setScaleAt(SCALE * 0.8, W/2, H/2);
+  }
+  if (e.key === '0'){ resetView(); }
+  if (e.key === 'g' || e.key === 'G'){
+    snap.on = !snap.on;
+    guides = [];
+    updateSnapUI();
+    showHint(snap.on ? `网格吸附：开（${snap.step} m）` : '网格吸附：关');
+  }
+  if (e.code === 'Escape' && drag){
+    // 拖动中按 Esc：回滚到按下时的状态
+    const d = drag;
+    drag = null;
+    if (d.comp && d.startComp) restoreSnapshot(d.comp, d.startComp);
+    guides = [];
+    boundarySnap = null;
+    hideHud();
+    canvas.classList.remove('grabbing');
+    canvas.style.cursor = '';
+    buildPropPanel();
+    renderCompList();
+    return;
+  }
+  if (e.code === 'Escape'){
+    state.pending = null;
+    state.selectedId = null;
+    hover = null;
+    guides = [];
+    hideHud();
+    legend.querySelectorAll('.legendItem').forEach(x => x.classList.remove('on'));
+    buildPropPanel();
+    renderCompList();
+  }
+  if (e.code === 'Delete' || e.code === 'Backspace'){
+    if (state.selectedId){
+      const i = state.components.findIndex(c => c.id === state.selectedId);
+      if (i >= 0) state.components.splice(i, 1);
+      state.selectedId = null;
+      buildPropPanel();
+      renderCompList();
+    }
+  }
+});
+
+/* =========================================================
+   启动
+   ========================================================= */
+updatePlayBtn();
+renderCompList();
+buildPropPanel();
+requestAnimationFrame(loop);
+
+(function initDemo(){
+  const f1 = makeField('rect', 0, 0, false);
+  f1.w = 4; f1.h = 2.4; f1.angle = 0;
+  f1.fieldType = 'E';
+  f1.fieldAngle = Math.PI/2;
+  f1.strength = 0.2;
+  f1.boundary = 'virtual';
+  state.components.push(f1);
+
+  const em = makeEmitter(-4.5, 0);
+  em.mode = 'single';
+  em.vAngle = 0;
+  em.v0 = 10;
+  em.continuous = false;
+  em.trailMode = 'solid';
+  state.components.push(em);
+
+  renderCompList();
+})();
+</script>
+</body>
+</html>

@@ -1,0 +1,147 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>带电粒子偏转模拟</title>
+<!-- Oat UI（本地化，无 CDN） -->
+<link rel="stylesheet" href="vendor/oat/oat.min.css">
+<link rel="stylesheet" href="css/base.css">
+<link rel="stylesheet" href="css/panels.css">
+<link rel="stylesheet" href="css/controls.css">
+</head>
+<body>
+<canvas id="cv"></canvas>
+
+<!-- 提示：优先用 Oat 的 toast，此元素仅作降级兜底 -->
+<p class="hint" id="hint" hidden></p>
+
+<div id="topTools">
+  <button class="outline small floatBtn" id="sceneBtn"
+          data-tooltip="场景 · 保存 / 加载（S）" data-tooltip-placement="bottom">场景</button>
+</div>
+<!-- 主题按钮：可拖动，位置记在 localStorage；tooltip 朝下，避免与顶部提示条打架 -->
+<button class="outline small icon floatBtn" id="themeBtn"
+        data-tooltip="切换主题（T）· 可拖动" data-tooltip-placement="bottom" aria-label="切换主题"></button>
+
+<!-- ===================== 左上：组件 ===================== -->
+<section class="panel card" id="leftPanel" aria-label="组件">
+  <header class="panelHead">
+    <h4 class="ttl">组件</h4>
+    <button class="ghost small icon chev" data-collapse="leftPanel" aria-label="折叠"></button>
+  </header>
+  <div class="panelBody">
+    <div class="segGroup catRow" role="tablist" aria-label="组件类别">
+      <button role="tab" class="on" data-cat="field" aria-selected="true">场</button>
+      <button role="tab" data-cat="negative" aria-selected="false">负场</button>
+      <button role="tab" data-cat="obstacle" aria-selected="false">障碍</button>
+      <button role="tab" data-cat="emitter" aria-selected="false">发射器</button>
+    </div>
+    <menu id="legend" class="unstyled vstack"></menu>
+  </div>
+</section>
+
+<!-- ===================== 右上：属性 ===================== -->
+<section class="panel card" id="propPanel" aria-label="属性">
+  <header class="panelHead">
+    <h4 class="ttl" id="propTitle">属性</h4>
+    <small id="propKind"></small>
+    <button class="ghost small icon chev" data-collapse="propPanel" aria-label="折叠"></button>
+  </header>
+  <div class="panelBody" id="propBody"></div>
+</section>
+
+<!-- ===================== 右下：组件列表 ===================== -->
+<section class="panel card" id="listPanel" aria-label="组件列表">
+  <header class="panelHead">
+    <h4 class="ttl">组件列表</h4>
+    <button class="ghost small icon chev" data-collapse="listPanel" aria-label="折叠"></button>
+  </header>
+  <menu class="panelBody unstyled" id="listBody"></menu>
+</section>
+
+<!-- ===================== 左下：视图 ===================== -->
+<section class="panel card" id="viewPanel" aria-label="视图">
+  <header class="panelHead">
+    <h4 class="ttl">视图</h4>
+    <button class="ghost small icon chev" data-collapse="viewPanel" aria-label="折叠"></button>
+  </header>
+  <div class="panelBody">
+    <div class="zoomRow"><span>视图缩放</span><b id="zoomVal">100%</b></div>
+    <div class="segGroup" role="tablist" id="zoomSeg" aria-label="视图缩放">
+      <button role="tab" data-z="out" aria-label="缩小">－</button>
+      <button role="tab" data-z="reset">重置</button>
+      <button role="tab" data-z="in" aria-label="放大">＋</button>
+    </div>
+    <p class="viewHint">滚轮缩放 · 空白拖动平移 · Shift 框选</p>
+
+    <label class="snapRow" for="snapToggle">
+      <span>网格吸附</span>
+      <input type="checkbox" role="switch" id="snapToggle" checked>
+    </label>
+    <div class="segGroup on" role="tablist" id="snapSeg" aria-label="吸附步长">
+      <button role="tab" data-step="0.1">0.1</button>
+      <button role="tab" data-step="0.25">0.25</button>
+      <button role="tab" class="on" data-step="0.5">0.5</button>
+      <button role="tab" data-step="1">1</button>
+    </div>
+    <div class="segGroup on" role="tablist" id="snapModeSeg" aria-label="吸附模式">
+      <button role="tab" class="on" data-mode="magnet">磁性</button>
+      <button role="tab" data-mode="grid">严格</button>
+    </div>
+    <p class="viewHint">Shift 反转吸附 · G 开关 · M 换模式 · 拖动自动对齐组件</p>
+  </div>
+</section>
+
+<div id="dragHud"></div>
+
+<!-- ===================== 悬浮开始按钮 ===================== -->
+<div id="playWrap">
+  <button id="playBtn" aria-label="开始" data-tooltip="点击开始 · 长按清空">
+    <span class="icon"></span>
+  </button>
+  <div id="chargeRing"></div>
+  <p id="playHint">长按重置</p>
+</div>
+
+<!-- ===================== 底部速率条 ===================== -->
+<div id="speedBar" class="card">
+  <input type="range" id="speedRange" min="1" max="100" value="20" aria-label="模拟速率">
+  <output class="sliderVal" id="speedVal">0.20×</output>
+</div>
+
+<!-- ===================== 场景：保存 / 加载 ===================== -->
+<dialog id="sceneDialog" aria-label="场景">
+  <header class="dlgHead">
+    <h4 class="ttl">场景</h4>
+    <button class="ghost small icon dlgClose" id="sceneClose" aria-label="关闭">×</button>
+  </header>
+  <div class="dlgBody">
+    <div class="sceneSaveRow">
+      <input type="text" id="sceneName" placeholder="给这个场景起个名字" maxlength="24"
+             autocomplete="off" spellcheck="false">
+      <button class="small" id="sceneSave">保存</button>
+    </div>
+    <p class="sceneTip">保存在本机浏览器 · 点条目即可加载还原 · 最多 12 个</p>
+    <menu id="sceneList" class="unstyled vstack"></menu>
+  </div>
+</dialog>
+
+<script src="vendor/oat/oat.min.js"></script>
+<script src="vendor/morphicons.js"></script>
+<script src="assets/icons.js"></script>
+<script src="js/icons.js"></script>
+<script src="js/core.js"></script>
+<script src="js/snap.js"></script>
+<script src="js/geometry.js"></script>
+<script src="js/state.js"></script>
+<script src="js/physics.js"></script>
+<script src="js/render.js"></script>
+<script src="js/ui.js"></script>
+<script src="js/panels.js"></script>
+<script src="js/controls.js"></script>
+<script src="js/interact.js"></script>
+<script src="js/scene.js"></script>
+<script src="js/main.js"></script>
+</body>
+</html>

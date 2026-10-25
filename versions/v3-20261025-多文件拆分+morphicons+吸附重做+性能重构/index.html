@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>带电粒子偏转模拟</title>
+<link rel="stylesheet" href="css/base.css">
+<link rel="stylesheet" href="css/panels.css">
+<link rel="stylesheet" href="css/controls.css">
+</head>
+<body>
+<canvas id="cv"></canvas>
+
+<div class="hint" id="hint">类别 → 组件 → 画布放置 · Shift 点击可多选</div>
+
+<div id="topTools">
+  <button class="iconBtn" id="themeBtn" title="切换亮 / 暗主题" aria-label="切换主题"></button>
+  <button class="iconBtn" id="layoutBtn" title="复位面板布局" aria-label="复位面板布局"></button>
+</div>
+
+<div class="panel" id="leftPanel">
+  <div class="panelHead" data-panel="leftPanel">
+    <span class="ttl">组件</span>
+    <button class="chev" data-collapse="leftPanel" aria-label="折叠"></button>
+  </div>
+  <div class="panelBody">
+    <div class="catRow">
+      <button class="catBtn" data-cat="field">场</button>
+      <button class="catBtn" data-cat="negative">负场</button>
+      <button class="catBtn" data-cat="obstacle">障碍</button>
+      <button class="catBtn" data-cat="emitter">发射器</button>
+    </div>
+    <div id="legend"></div>
+  </div>
+</div>
+
+<div class="panel" id="propPanel">
+  <div class="panelHead" data-panel="propPanel">
+    <span class="ttl" id="propTitle">属性</span>
+    <small id="propKind"></small>
+    <button class="chev" data-collapse="propPanel" aria-label="折叠"></button>
+  </div>
+  <div class="panelBody" id="propBody"></div>
+</div>
+
+<div class="panel" id="listPanel">
+  <div class="panelHead" data-panel="listPanel">
+    <span class="ttl">组件列表</span>
+    <button class="chev" data-collapse="listPanel" aria-label="折叠"></button>
+  </div>
+  <div class="panelBody" id="listBody"></div>
+</div>
+
+<div class="panel" id="viewPanel">
+  <div class="panelHead" data-panel="viewPanel">
+    <span class="ttl">视图</span>
+    <button class="chev" data-collapse="viewPanel" aria-label="折叠"></button>
+  </div>
+  <div class="panelBody">
+    <div class="zoomRow"><span>视图缩放</span><b id="zoomVal">100%</b></div>
+    <div class="seg" id="zoomSeg">
+      <button class="segBtn" data-z="out">－</button>
+      <button class="segBtn" data-z="reset">重置</button>
+      <button class="segBtn" data-z="in">＋</button>
+    </div>
+    <div class="viewHint">滚轮缩放 · 空白拖动平移</div>
+    <div class="viewHint">Shift 多选 · Shift 空白框选</div>
+
+    <div class="snapRow"><span>网格吸附</span><button class="snapSwitch on" id="snapToggle">开</button></div>
+    <div class="seg on" id="snapSeg">
+      <button class="segBtn" data-step="0.1">0.1</button>
+      <button class="segBtn" data-step="0.25">0.25</button>
+      <button class="segBtn on" data-step="0.5">0.5</button>
+      <button class="segBtn" data-step="1">1</button>
+    </div>
+    <div class="seg on" id="snapModeSeg">
+      <button class="segBtn on" data-mode="magnet">磁性</button>
+      <button class="segBtn" data-mode="grid">严格</button>
+    </div>
+    <div class="viewHint">Shift 反转吸附 · G 开关 · M 换模式</div>
+    <div class="viewHint">拖动时自动对齐其它组件</div>
+  </div>
+</div>
+
+<div id="dragHud"></div>
+
+<div id="playWrap">
+  <button id="playBtn" aria-label="开始"><div class="icon"></div></button>
+  <div id="chargeRing"></div>
+  <div id="playHint">长按重置</div>
+</div>
+
+<div id="speedBar">
+  <input type="range" id="speedRange" min="1" max="100" value="20">
+  <span class="sliderVal" id="speedVal">0.20×</span>
+</div>
+
+<script src="vendor/morphicons.js"></script>
+<script src="assets/icons.js"></script>
+<script src="js/icons.js"></script>
+<script src="js/core.js"></script>
+<script src="js/snap.js"></script>
+<script src="js/geometry.js"></script>
+<script src="js/state.js"></script>
+<script src="js/physics.js"></script>
+<script src="js/render.js"></script>
+<script src="js/ui.js"></script>
+<script src="js/panels.js"></script>
+<script src="js/controls.js"></script>
+<script src="js/interact.js"></script>
+<script src="js/main.js"></script>
+</body>
+</html>

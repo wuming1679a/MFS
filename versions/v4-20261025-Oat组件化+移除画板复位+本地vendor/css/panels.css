@@ -1,0 +1,161 @@
+/* =========================================================
+   panels.css — 面板骨架与面板内控件
+   ---------------------------------------------------------
+   面板本体用 Oat 的 .card（背景 / 边框 / 圆角 / 阴影都来自 Oat），
+   本文件只补：固定定位、标题栏、滚动区、以及面板里各控件的排版。
+   分段控件用 Oat 的 [role=tablist] / [role=tab]，开关用 Oat 的
+   input[role=switch]，滑杆 / 数字框用 Oat 的原生 skin。
+   ========================================================= */
+
+/* ===================== 面板通用 ===================== */
+.panel{position:fixed;z-index:10;display:flex;flex-direction:column;padding:0;
+  overflow:hidden;border-radius:var(--radius-large);
+  backdrop-filter:blur(14px) saturate(1.15);
+  -webkit-backdrop-filter:blur(14px) saturate(1.15);
+  box-shadow:var(--shadow);
+  transition:box-shadow .18s var(--ease),background .18s,border-color .18s}
+.panel.dragging{box-shadow:0 18px 46px rgba(0,0,0,.42);z-index:24;transition:none}
+
+/* <menu> 自带项目符号与缩进，面板里一律清掉 */
+.panel menu,.panelBody menu,.multiList{list-style:none;padding-inline-start:0}
+
+.panelHead{display:flex;align-items:center;gap:8px;flex-shrink:0;
+  height:36px;padding:0 6px 0 12px;background:var(--headBg);
+  border-bottom:1px solid var(--border);cursor:grab;touch-action:none;
+  transition:background .18s,border-color .18s}
+.panelHead:active{cursor:grabbing}
+.panelHead .ttl{flex:1;margin:0;font-size:12.5px;font-weight:600;color:var(--foreground);
+  line-height:1.2;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.panelHead small{flex-shrink:0;font-size:10.5px;color:var(--muted-foreground)}
+.chev{flex-shrink:0;width:26px;height:26px;padding:0}
+/* 折叠后箭头由 morph 图标表达（旋转在图标内部完成），降级字形走这里 */
+.panel.collapsed .chev .iconGlyph{transform:rotate(-90deg)}
+
+/* 折叠 / 展开：靠高度过渡做动画，不再 display:none 硬切 */
+.panelBody{display:flex;flex-direction:column;gap:8px;min-height:0;
+  padding:9px 10px 10px;overflow-y:auto;overscroll-behavior:contain;
+  scrollbar-gutter:stable;touch-action:pan-y;
+  transition:height .26s var(--ease),opacity .2s var(--ease),
+    padding .26s var(--ease),background .18s}
+.panel.collapsed .panelBody{height:0!important;padding-top:0;padding-bottom:0;
+  opacity:0;overflow:hidden;pointer-events:none}
+
+/* ===================== 分段控件（Oat [role=tablist] 皮） ===================== */
+.segGroup{display:flex;width:100%;gap:2px;padding:2px;
+  background:var(--segBg);border:1px solid var(--border);border-radius:9px}
+.segGroup [role=tab]{flex:1;min-width:0;padding:5px 3px;font-size:12px;
+  border:none;border-radius:7px;background:transparent;color:var(--muted-foreground);
+  box-shadow:none;white-space:nowrap;touch-action:manipulation;
+  transition:background .16s var(--ease),color .16s,box-shadow .16s}
+.segGroup [role=tab]:hover{color:var(--foreground);background:var(--accent)}
+.segGroup [role=tab].on,
+.segGroup [role=tab][aria-selected=true]{background:var(--primary);
+  color:var(--primary-foreground);font-weight:500;
+  box-shadow:0 2px 9px rgba(37,99,235,.32)}
+/* 只让吸附相关的两组在关闭时变灰禁用，别误伤属性面板里的分组 */
+#snapSeg:not(.on),#snapModeSeg:not(.on){opacity:.42;pointer-events:none}
+
+/* ===================== 左上：组件 ===================== */
+#leftPanel{left:12px;top:12px;width:218px;max-height:calc(100vh - 380px)}
+.catRow{gap:3px;padding:2px}
+.catRow [role=tab]{padding:6px 0;font-size:13px;font-weight:500}
+#legend{display:flex;flex-direction:column;gap:2px;margin:0;padding:0}
+#legend:empty{display:none}
+#legend>li{animation:legendIn .2s var(--ease) both}
+@keyframes legendIn{from{opacity:0;transform:translateY(-2px)}to{opacity:1;transform:none}}
+
+/* 图例项：Oat ghost 按钮 + 前置圆点 */
+.legendBtn{width:100%;justify-content:flex-start;gap:7px;padding:5px 9px;
+  font-size:12.5px;font-weight:400;color:var(--txt2);
+  border:1px solid transparent;border-radius:8px;
+  transition:background .15s var(--ease),color .15s,border-color .15s,transform .1s}
+.legendBtn::before{content:'';width:5px;height:5px;border-radius:50%;flex-shrink:0;
+  background:var(--txt5);transition:.15s}
+.legendBtn:hover{background:var(--accent);color:var(--foreground)}
+.legendBtn:hover::before{background:var(--accent2)}
+.legendBtn:active{transform:scale(.985)}
+.legendBtn.on{background:rgba(14,165,233,.16);color:var(--accent2);
+  border-color:rgba(56,189,248,.42)}
+.legendBtn.on::before{background:var(--accent2);box-shadow:0 0 6px var(--accent2)}
+
+/* ===================== 右上：属性 ===================== */
+#propPanel{right:12px;top:56px;width:300px;
+  max-height:calc(100vh - 320px);display:none}
+#propPanel .panelBody{padding:10px 12px 12px;overflow-y:auto}
+
+.propRow{margin:0 0 10px}
+.propRow .rowLabel{display:flex;justify-content:space-between;align-items:center;
+  margin:0 0 5px;font-size:12px;font-weight:400;color:var(--muted-foreground)}
+.rowLabel b{color:var(--accent2);font-weight:500}
+
+.sliderWrap{display:flex;align-items:center;gap:8px}
+.sliderWrap input[type=range]{flex:1;min-width:0;width:auto;margin:0}
+.sliderVal{font-size:12px;color:var(--accent2);min-width:52px;text-align:right;
+  font-variant-numeric:tabular-nums}
+.numWrap{display:flex;align-items:center;gap:6px}
+.numWrap input[type=number]{margin:0}
+.unit{font-size:12px;color:var(--faint-foreground);min-width:34px}
+input.numMini{flex:0 0 58px;width:58px;margin:0;padding:4px 6px;
+  text-align:right;font-variant-numeric:tabular-nums}
+
+/* 位置 X / Y 并排 */
+.posGrid{display:grid;grid-template-columns:1fr 1fr;gap:7px}
+.posField{display:flex;align-items:center;gap:5px;margin:0;font-weight:400}
+.posField>span{font-size:11px;color:var(--faint-foreground);flex-shrink:0}
+.posField input[type=number]{margin:0;padding:4px 7px;text-align:right;
+  font-size:12.5px;font-variant-numeric:tabular-nums}
+
+/* 分组小标题 */
+.sectionTitle{margin:14px 0 8px;padding-bottom:5px;font-size:11px;font-weight:600;
+  letter-spacing:.5px;color:var(--faint-foreground);text-transform:uppercase;
+  border-bottom:1px solid var(--border)}
+.sectionTitle:first-child{margin-top:2px}
+
+/* 删除按钮：Oat 的 danger + outline */
+.delBtn{width:100%;justify-content:center;gap:7px;margin-top:6px;padding:8px}
+.delBtn morph-icon{opacity:.9}
+
+/* 说明性 alert（Oat [role=alert]） */
+.tipAlert{margin:0 0 10px;padding:9px 11px;font-size:11.5px;
+  line-height:1.55;color:var(--muted-foreground)}
+
+/* ===================== 右下：组件列表 ===================== */
+#listPanel{right:12px;bottom:12px;width:252px}
+#listPanel .panelBody{padding:6px;gap:2px;max-height:190px}
+.compRow{display:flex;align-items:center;gap:4px}
+.compPick{flex:1;min-width:0;justify-content:flex-start;gap:8px;
+  padding:5px 8px;font-size:12.5px;font-weight:400;color:var(--txt2);
+  border-radius:7px;transition:background .14s var(--ease),color .14s}
+.compPick:hover{background:var(--accent);color:var(--foreground)}
+.compPick.on{background:rgba(37,99,235,.28);color:var(--foreground)}
+.dot{width:7px;height:7px;border-radius:50%;flex-shrink:0;box-shadow:0 0 5px currentColor}
+.nm{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.compDel{width:24px;height:24px;padding:0;border-radius:6px;flex-shrink:0;
+  color:var(--faint-foreground);font-size:14px;line-height:1}
+.compDel:hover{color:var(--danger);background:rgba(239,68,68,.15)}
+.emptyTip{margin:0;padding:14px 0;font-size:12px;text-align:center;
+  color:var(--faint-foreground)}
+
+/* ===================== 左下：视图 ===================== */
+#viewPanel{left:12px;bottom:12px;width:206px}
+.zoomRow{display:flex;justify-content:space-between;align-items:center;
+  margin:0;font-size:12px;color:var(--muted-foreground)}
+.zoomRow b{color:var(--accent2);font-weight:600;font-variant-numeric:tabular-nums}
+#zoomSeg [role=tab]{padding:4px 0;font-size:12px}
+.viewHint{margin:0;font-size:10.5px;line-height:1.55;color:var(--faint-foreground)}
+
+/* 吸附开关：Oat 的 input[role=switch]，套在 label 里由 label 排版 */
+.snapRow{display:flex;justify-content:space-between;align-items:center;
+  margin:10px 0 0;padding-top:9px;font-size:12px;font-weight:400;
+  color:var(--muted-foreground);border-top:1px solid var(--border);cursor:pointer}
+.snapRow input[type=checkbox][role=switch]{margin:0;flex-shrink:0;--switch-height:22px}
+
+/* ===================== 多选面板 ===================== */
+.multiHead{display:flex;align-items:baseline;gap:8px;margin:0 0 10px}
+.multiCount{font-size:20px;font-weight:700;color:var(--accent2);line-height:1.1}
+.multiHead span{font-size:11.5px;color:var(--faint-foreground)}
+.multiRow{display:flex;gap:6px;margin:0 0 7px}
+.multiRow button{flex:1;padding:6px 0;font-size:11.5px}
+.multiList{display:flex;flex-direction:column;gap:4px;max-height:132px;
+  margin:0 0 4px;padding:0;overflow-y:auto}
+.multiList .compRow{padding:4px 8px;font-size:12.5px;color:var(--txt2)}

@@ -1,0 +1,137 @@
+/* =========================================================
+   base.css — 令牌桥接 / 画布 / 全局
+   ---------------------------------------------------------
+   Oat（vendor/oat/oat.min.css）提供组件外观，本文件只做两件事：
+   1) 把我们的配色灌进 Oat 的 CSS 变量（--background / --primary …）
+   2) 画布与全局滚动条等与组件无关的东西
+   注意：本文件不带 @layer，浏览器里**无层样式优先级高于任何 @layer**，
+        所以这里的声明天然压过 oat，不需要 !important。
+   ========================================================= */
+
+/* ===================== 主题变量 ===================== */
+:root{
+  /* —— 自有色板（画布 / HUD / 少量内联样式仍在用） —— */
+  --bg:#0b1120;
+  --panel:rgba(15,23,42,.9);
+  --panelSoft:rgba(15,23,42,.85);
+  --ctl:rgba(30,41,59,.9);
+  --ctlSoft:rgba(51,65,85,.55);
+  --ctlHover:rgba(51,65,85,.95);
+  --txt:#e2e8f0; --txt2:#cbd5e1; --txt3:#94a3b8; --txt4:#64748b; --txt5:#475569;
+  --dim:#8595ad;
+  --bd:rgba(148,163,184,.18); --bd2:rgba(148,163,184,.22); --bd3:rgba(148,163,184,.12);
+  --accent:#38bdf8; --accent2:#7dd3fc; --blue:#2563eb;
+  --hudBg:rgba(8,14,28,.9); --hudBd:rgba(56,189,248,.35);
+  --track:rgba(148,163,184,.25);
+  --grade:rgba(148,163,184,.35);
+  --shadow:0 8px 30px rgba(0,0,0,.45);
+  --thumbBd:#fff;
+  --inputBg:rgba(30,41,59,.9);
+  /* 滚动条 */
+  --sb:rgba(148,163,184,.28);
+  --sbHover:rgba(148,163,184,.52);
+  --sbActive:rgba(56,189,248,.55);
+  /* 面板标题栏 / 分隔 */
+  --headBg:rgba(15,23,42,.55);
+  --segBg:rgba(2,6,23,.55);
+  --ease:cubic-bezier(.32,.72,.28,1);
+
+  /* —— Oat 令牌桥接（组件外观全走这套） —— */
+  color-scheme:dark;
+  --background:#0b1120;
+  --foreground:#e2e8f0;
+  --card:rgba(17,26,45,.92);
+  --card-foreground:#e2e8f0;
+  --primary:#2563eb;
+  --primary-foreground:#fff;
+  --secondary:rgba(30,41,59,.9);
+  --secondary-foreground:#e2e8f0;
+  --muted:rgba(51,65,85,.5);
+  --muted-foreground:#94a3b8;
+  --faint:rgba(15,23,42,.6);
+  --faint-foreground:#64748b;
+  --accent:rgba(51,65,85,.95);
+  --danger:#ef4444;
+  --danger-foreground:#fff;
+  --success:#34d399;
+  --warning:#f59e0b;
+  --border:rgba(148,163,184,.18);
+  --input:rgba(148,163,184,.22);
+  --ring:#38bdf8;
+  /* 组件密度：Oat 默认 14px 文字偏大，工具类界面压到 13px */
+  --radius-small:5px;
+  --radius-medium:9px;
+  --radius-large:13px;
+  --text-regular:.8125rem;
+  --text-7:.8125rem;
+  --text-8:.6875rem;
+  --bar-height:6px;
+}
+
+html.light, body.light{
+  --bg:#eef2f7;
+  --panel:rgba(255,255,255,.95);
+  --panelSoft:rgba(255,255,255,.92);
+  --ctl:rgba(241,245,249,.96);
+  --ctlSoft:rgba(226,232,240,.9);
+  --ctlHover:rgba(203,213,225,.95);
+  --txt:#0f172a; --txt2:#1e293b; --txt3:#475569; --txt4:#64748b; --txt5:#94a3b8;
+  --dim:#5c6c82;
+  --bd:rgba(15,23,42,.12); --bd2:rgba(15,23,42,.2); --bd3:rgba(15,23,42,.08);
+  --accent:#0284c7; --accent2:#0369a1; --blue:#2563eb;
+  --hudBg:rgba(255,255,255,.97); --hudBd:rgba(2,132,199,.42);
+  --track:rgba(100,116,139,.28);
+  --grade:rgba(100,116,139,.45);
+  --shadow:0 8px 26px rgba(15,23,42,.14);
+  --inputBg:rgba(241,245,249,.96);
+  --sb:rgba(100,116,139,.30);
+  --sbHover:rgba(100,116,139,.55);
+  --sbActive:rgba(2,132,199,.6);
+  --headBg:rgba(241,245,249,.72);
+  --segBg:rgba(226,232,240,.7);
+
+  /* Oat 亮色 */
+  color-scheme:light;
+  --background:#eef2f7;
+  --foreground:#0f172a;
+  --card:rgba(255,255,255,.96);
+  --card-foreground:#0f172a;
+  --primary:#2563eb;
+  --primary-foreground:#fff;
+  --secondary:rgba(226,232,240,.92);
+  --secondary-foreground:#1e293b;
+  --muted:rgba(226,232,240,.8);
+  --muted-foreground:#64748b;
+  --faint:rgba(241,245,249,.9);
+  --faint-foreground:#94a3b8;
+  --accent:rgba(203,213,225,.85);
+  --danger:#dc2626;
+  --danger-foreground:#fff;
+  --border:rgba(15,23,42,.12);
+  --input:rgba(15,23,42,.2);
+  --ring:#0284c7;
+}
+
+/* ===================== 全局 ===================== */
+/* 注意：这里**不要**写 *{padding:0}，否则会盖掉 Oat 的按钮/输入框内边距 */
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{width:100%;height:100%;overflow:hidden;background:var(--background);
+  font-family:system-ui,-apple-system,"Segoe UI","Microsoft YaHei",sans-serif;
+  color:var(--foreground);user-select:none;overscroll-behavior:none;
+  transition:background .18s,color .18s}
+input{user-select:text}
+canvas{position:fixed;inset:0;display:block;max-width:none;cursor:crosshair;touch-action:none}
+canvas.grabbing{cursor:grabbing}
+
+/* ===================== 滚动条（全局统一） ===================== */
+*{scrollbar-width:thin;scrollbar-color:var(--sb) transparent}
+::-webkit-scrollbar{width:9px;height:9px}
+::-webkit-scrollbar-track{background:transparent;border-radius:99px}
+::-webkit-scrollbar-thumb{background:var(--sb);border-radius:99px;
+  border:2px solid transparent;background-clip:content-box}
+::-webkit-scrollbar-thumb:hover{background:var(--sbHover);background-clip:content-box}
+::-webkit-scrollbar-thumb:active{background:var(--sbActive);background-clip:content-box}
+::-webkit-scrollbar-corner{background:transparent}
+
+/* ===================== 焦点环 ===================== */
+:focus-visible{outline:2px solid var(--ring);outline-offset:2px}

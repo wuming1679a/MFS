@@ -1,0 +1,15 @@
+# 开发/测试临时产物
+.workbuddy/
+.edgeprof*/
+_t.html
+_t2.html
+_shot*.html
+_dump*.html
+_dump.err
+_s*.png
+*.log
+
+# 系统
+.DS_Store
+Thumbs.db
+desktop.ini

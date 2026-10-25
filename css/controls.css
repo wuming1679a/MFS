@@ -1,0 +1,138 @@
+/* =========================================================
+   controls.css — 悬浮控件 / 图标 / 浮层
+   ========================================================= */
+
+/* ===================== 动效图标（morphicons） ===================== */
+morph-icon{display:block;line-height:0;flex-shrink:0}
+morph-icon svg{display:block}
+/* 降级字形（morphicons 未加载时） */
+.iconGlyph{display:flex;align-items:center;justify-content:center;line-height:1;
+  font-size:15px;transition:transform .2s}
+
+/* ===================== 顶部工具 ===================== */
+/* 右上角从右往左：复位（固定最右）→ 主题（可拖动）→ 场景 */
+#topTools{position:fixed;right:100px;top:12px;display:flex;gap:7px;z-index:12}
+.floatBtn{width:34px;height:34px;padding:0;background:var(--card);color:var(--foreground);
+  border-color:var(--border);box-shadow:var(--shadow);backdrop-filter:blur(14px);
+  -webkit-backdrop-filter:blur(14px);
+  transition:color .16s,border-color .16s,transform .16s var(--ease),background .16s}
+.floatBtn:hover{transform:translateY(-1px);background:var(--accent);border-color:var(--border)}
+.floatBtn:active{transform:translateY(0) scale(.95)}
+
+/* 带文字的工具按钮（场景）：宽度自适应，高度与圆形按钮对齐 */
+#sceneBtn{width:auto;height:34px;padding:0 11px;font-size:12.5px;font-weight:500;
+  letter-spacing:.2px}
+
+/* 复位按钮：最右侧，固定不动；点一下有轻微回弹，提示"转回来了" */
+#resetBtn{position:fixed;right:12px;top:12px;z-index:12;
+  display:flex;align-items:center;justify-content:center}
+#resetBtn.spin morph-icon{animation:resetSpin .5s var(--ease)}
+@keyframes resetSpin{from{transform:rotate(-320deg)}to{transform:rotate(0)}}
+
+/* 主题按钮独立定位：位置可拖动并记忆，所以不能留在 topTools 的流里 */
+#themeBtn{position:fixed;right:56px;top:12px;z-index:12;
+  cursor:grab;touch-action:none;-webkit-touch-callout:none}
+#themeBtn.dragging{cursor:grabbing;z-index:26;transform:scale(1.06);
+  box-shadow:0 10px 26px rgba(0,0,0,.35);transition:none}
+#themeBtn.dragging:hover{transform:scale(1.06)}
+
+/* ===================== 拖拽读数 HUD ===================== */
+#dragHud{position:fixed;left:0;top:0;z-index:30;pointer-events:none;
+  padding:5px 9px;border-radius:7px;font-size:11.5px;line-height:1.4;
+  font-variant-numeric:tabular-nums;white-space:nowrap;
+  background:var(--hudBg);border:1px solid var(--hudBd);
+  color:var(--txt2);box-shadow:0 4px 16px rgba(0,0,0,.28);
+  opacity:0;transition:opacity .1s;transform:translate(-999px,-999px)}
+#dragHud b{color:var(--accent2);font-weight:600}
+#dragHud .tag{display:inline-block;margin-left:6px;padding:0 5px;border-radius:4px;
+  background:rgba(56,189,248,.18);color:var(--accent2);font-size:10px}
+
+/* ===================== 悬浮开始按钮 ===================== */
+#playWrap{position:fixed;left:50%;bottom:70px;transform:translateX(-50%);z-index:11;
+  display:flex;flex-direction:column;align-items:center;gap:4px;
+  touch-action:none;user-select:none;-webkit-touch-callout:none}
+#playBtn{width:54px;height:54px;padding:0;border-radius:50%;border:none;
+  background:var(--primary);color:var(--primary-foreground);
+  box-shadow:0 8px 22px rgba(37,99,235,.42);position:relative;
+  transition:background .1s,transform .1s,box-shadow .18s;-webkit-touch-callout:none}
+#playBtn:hover{background:var(--primary);box-shadow:0 10px 26px rgba(37,99,235,.55)}
+#playBtn:active{transform:scale(.94)}
+#playBtn .icon{width:26px;height:26px;display:flex;align-items:center;justify-content:center;
+  margin-left:2px;color:currentColor;transition:margin .12s}
+#playBtn.running .icon{margin-left:0}
+#chargeRing{position:absolute;left:50%;top:-5px;width:64px;height:64px;margin-left:-32px;
+  border-radius:50%;pointer-events:none;opacity:0;transition:opacity .12s;
+  background:conic-gradient(var(--danger) calc(var(--cp,0) * 1%), transparent 0);
+  -webkit-mask:radial-gradient(farthest-side,transparent calc(100% - 5px),#000 calc(100% - 4px));
+  mask:radial-gradient(farthest-side,transparent calc(100% - 5px),#000 calc(100% - 4px))}
+#playWrap.charging #chargeRing{opacity:1}
+#playHint{margin:0;font-size:10.5px;color:var(--faint-foreground);opacity:.45;
+  letter-spacing:.4px;pointer-events:none;transition:opacity .18s}
+#playWrap:hover #playHint{opacity:1}
+#playWrap.charging #playHint{color:var(--danger);opacity:1}
+
+/* ===================== 底部速率条 ===================== */
+#speedBar{position:fixed;left:50%;bottom:14px;transform:translateX(-50%);z-index:10;
+  display:flex;align-items:center;gap:11px;padding:8px 16px;
+  width:min(320px,72vw);border-radius:26px;backdrop-filter:blur(14px);
+  -webkit-backdrop-filter:blur(14px);
+  transition:border-color .18s,background .18s}
+#speedBar .sliderVal{min-width:46px;font-size:11.5px}
+
+/* 速率条自绘：轨道随进度由蓝转红（颜色来自 JS 的 --fill） */
+#speedRange{flex:1;width:auto;margin:0;height:6px;border-radius:3px;
+  background:linear-gradient(90deg,var(--fill,#38bdf8) var(--p,20%),
+    var(--track) var(--p,20%))}
+#speedRange::-webkit-slider-thumb{width:17px;height:17px;background:var(--fill,#38bdf8);
+  border:2px solid var(--thumbBd);box-shadow:0 1px 6px rgba(0,0,0,.35);
+  transition:background .1s,transform .1s}
+#speedRange::-webkit-slider-thumb:hover{transform:scale(1.08)}
+#speedRange::-moz-range-thumb{width:15px;height:15px;border:2px solid var(--thumbBd);
+  background:var(--fill,#38bdf8)}
+#speedRange::-moz-range-track{background:transparent}
+
+/* ===================== 提示（Oat toast） ===================== */
+/* Oat 的 toast 默认偏大，工具界面收紧一点 */
+.toast{min-width:0;max-width:min(78vw,560px);padding:9px 14px;
+  font-size:12.5px;line-height:1.35}
+.toast .toast-message{font-size:12.5px}
+
+/* 降级提示条（Oat toast 不可用时才会出现） */
+.hint{position:fixed;left:50%;top:12px;transform:translateX(-50%);z-index:9;
+  margin:0;padding:6px 15px;font-size:12.5px;color:var(--txt3);
+  background:var(--panelSoft);border:1px solid var(--bd3);border-radius:18px;
+  backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);
+  max-width:min(520px,58vw);overflow:hidden;text-overflow:ellipsis;
+  white-space:nowrap;pointer-events:none;transition:opacity .3s}
+.hint[hidden]{display:none}
+
+/* ===================== 触屏优化 ===================== */
+html{-webkit-text-size-adjust:100%}
+@media (pointer:coarse){
+  .panelHead{height:40px}
+  .chev{width:30px;height:30px}
+  .catRow [role=tab]{padding:9px 0;font-size:13.5px}
+  .legendBtn{padding:10px 9px;font-size:13.5px}
+  .compPick{padding:9px 8px}
+  .segGroup [role=tab]{padding:8px 2px;font-size:12.5px}
+  .snapRow input[type=checkbox][role=switch]{--switch-height:1.75rem}
+  input,select,.numMini{font-size:16px}
+  #playBtn{width:58px;height:58px}
+  #speedBar{padding:10px 16px}
+}
+
+/* ===================== 减弱动效偏好 ===================== */
+@media (prefers-reduced-motion:reduce){
+  *{animation-duration:.01ms!important;animation-delay:0ms!important;
+    transition-duration:.01ms!important}
+}
+
+/* ===================== 矮屏适配：优先保证面板互不压盖 ===================== */
+@media (max-height:700px){
+  .viewHint{display:none}
+  #leftPanel{max-height:calc(100vh - 208px)}
+  #propPanel{max-height:calc(100vh - 250px)}
+  #listPanel .panelBody{max-height:118px}
+  .sectionTitle{margin:10px 0 6px}
+  .propRow{margin-bottom:8px}
+}

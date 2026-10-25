@@ -1,0 +1,111 @@
+  /* ===================== 动效图标（morphicons） ===================== */
+  morph-icon{display:block;line-height:0;flex-shrink:0}
+  morph-icon svg{display:block}
+  .iconBtn morph-icon{opacity:.9;transition:opacity .16s}
+  .iconBtn:hover morph-icon{opacity:1}
+  /* 降级字形（morphicons 未加载时） */
+  .iconGlyph{display:flex;align-items:center;justify-content:center;line-height:1;
+    font-size:15px;transition:transform .2s}
+
+  /* ===================== 顶部工具 ===================== */
+  #topTools{position:fixed;right:12px;top:12px;display:flex;gap:7px;z-index:12}
+  .iconBtn{width:34px;height:34px;border-radius:10px;border:1px solid var(--bd);
+    background:var(--panel);backdrop-filter:blur(14px);color:var(--txt2);
+    font-size:14px;cursor:pointer;display:flex;align-items:center;justify-content:center;
+    box-shadow:var(--shadow);line-height:1;touch-action:manipulation;
+    transition:color .16s,border-color .16s,transform .16s var(--ease),background .16s}
+  .iconBtn:hover{color:var(--txt);border-color:var(--bd2);transform:translateY(-1px)}
+  .iconBtn:active{transform:translateY(0) scale(.95)}
+
+  /* ===================== 拖拽读数 HUD ===================== */
+  #dragHud{position:fixed;left:0;top:0;z-index:30;pointer-events:none;
+    padding:5px 9px;border-radius:7px;font-size:11.5px;line-height:1.4;
+    font-variant-numeric:tabular-nums;white-space:nowrap;
+    background:var(--hudBg);border:1px solid var(--hudBd);
+    color:var(--txt2);box-shadow:0 4px 16px rgba(0,0,0,.28);
+    opacity:0;transition:opacity .1s;transform:translate(-999px,-999px)}
+  #dragHud b{color:var(--accent);font-weight:600}
+  #dragHud .tag{display:inline-block;margin-left:6px;padding:0 5px;border-radius:4px;
+    background:rgba(56,189,248,.18);color:var(--accent2);font-size:10px}
+
+  /* ===================== 悬浮开始按钮 ===================== */
+  #playWrap{position:fixed;left:50%;bottom:70px;transform:translateX(-50%);z-index:11;
+    display:flex;flex-direction:column;align-items:center;gap:4px;
+    touch-action:none;user-select:none;-webkit-touch-callout:none}
+  #playBtn{width:54px;height:54px;border-radius:50%;border:none;cursor:pointer;
+    background:var(--blue);display:flex;align-items:center;justify-content:center;
+    box-shadow:0 8px 22px rgba(37,99,235,.42);position:relative;
+    transition:background .1s,transform .1s,box-shadow .18s;-webkit-touch-callout:none}
+  #playBtn:hover{box-shadow:0 10px 26px rgba(37,99,235,.55)}
+  #playBtn:active{transform:scale(.94)}
+  #playBtn .icon{width:26px;height:26px;display:flex;align-items:center;justify-content:center;
+    margin-left:2px;color:#fff;transition:margin .12s}
+  #playBtn.running .icon{margin-left:0}
+  #chargeRing{position:absolute;left:50%;top:-5px;width:64px;height:64px;margin-left:-32px;
+    border-radius:50%;pointer-events:none;opacity:0;transition:opacity .12s;
+    background:conic-gradient(#ef4444 calc(var(--cp,0) * 1%), transparent 0);
+    -webkit-mask:radial-gradient(farthest-side,transparent calc(100% - 5px),#000 calc(100% - 4px));
+    mask:radial-gradient(farthest-side,transparent calc(100% - 5px),#000 calc(100% - 4px))}
+  #playWrap.charging #chargeRing{opacity:1}
+  #playHint{font-size:10.5px;color:var(--txt4);opacity:.45;letter-spacing:.4px;
+    pointer-events:none;transition:opacity .18s}
+  #playWrap:hover #playHint{opacity:1}
+  #playWrap.charging #playHint{color:#ef4444;opacity:1}
+
+  /* ===================== 底部速率条 ===================== */
+  #speedBar{position:fixed;left:50%;bottom:14px;transform:translateX(-50%);z-index:10;
+    display:flex;align-items:center;gap:11px;padding:8px 16px;
+    width:min(320px,72vw);background:var(--panel);backdrop-filter:blur(14px);
+    -webkit-backdrop-filter:blur(14px);border:1px solid var(--bd);border-radius:26px;
+    box-shadow:var(--shadow);transition:border-color .18s,background .18s}
+  #speedBar .sliderVal{min-width:46px;text-align:right;font-size:11.5px}
+  #speedRange{-webkit-appearance:none;appearance:none;flex:1;height:6px;border-radius:3px;
+    outline:none;cursor:pointer;touch-action:none;
+    background:linear-gradient(90deg,var(--fill,#38bdf8) var(--p,20%),
+      var(--track) var(--p,20%))}
+  #speedRange::-webkit-slider-runnable-track{height:6px;border-radius:3px;background:transparent}
+  #speedRange::-webkit-slider-thumb{-webkit-appearance:none;width:17px;height:17px;
+    border-radius:50%;background:var(--fill,#38bdf8);border:2px solid var(--thumbBd);
+    cursor:pointer;box-shadow:0 1px 6px rgba(0,0,0,.35);transition:background .1s}
+  #speedRange::-moz-range-thumb{width:15px;height:15px;border:2px solid var(--thumbBd);
+    border-radius:50%;background:var(--fill,#38bdf8);cursor:pointer}
+  #speedRange::-moz-range-track{background:var(--track);height:6px;border-radius:3px}
+
+  /* ===================== 触屏优化 ===================== */
+  html{-webkit-text-size-adjust:100%}
+  @media (pointer:coarse){
+    .panelHead{height:40px}
+    .chev{width:28px;height:28px;font-size:10px}
+    .catBtn{padding:10px 0;font-size:13.5px}
+    .legendItem{padding:10px 9px;font-size:13.5px}
+    .compItem{padding:10px 9px}
+    .segBtn{padding:9px 2px;font-size:12.5px}
+    input[type=number],.numMini{font-size:16px}
+    .snapSwitch{padding:6px 15px;font-size:12.5px}
+    #playBtn{width:58px;height:58px}
+    #speedBar{padding:10px 16px}
+  }
+
+  /* ===================== 减弱动效偏好 ===================== */
+  @media (prefers-reduced-motion:reduce){
+    *{animation-duration:.01ms!important;animation-delay:0ms!important;
+      transition-duration:.01ms!important}
+  }
+
+  /* ===================== 矮屏适配：优先保证面板互不压盖 ===================== */
+  @media (max-height:700px){
+    .viewHint{display:none}
+    #leftPanel{max-height:calc(100vh - 208px)}
+    #propPanel{max-height:calc(100vh - 250px)}
+    #listPanel .panelBody{max-height:118px}
+    .sectionTitle{margin:10px 0 6px}
+    .row{margin-bottom:8px}
+  }
+
+  /* ===================== 顶部提示 ===================== */
+  .hint{position:fixed;left:50%;top:12px;transform:translateX(-50%);
+    font-size:12.5px;color:var(--txt3);background:var(--panelSoft);
+    padding:6px 15px;border-radius:18px;border:1px solid var(--bd3);
+    z-index:9;pointer-events:none;transition:opacity .3s;
+    backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);max-width:min(520px,58vw);
+    text-align:center;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
